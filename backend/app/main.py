@@ -1,0 +1,181 @@
+from contextlib import asynccontextmanager
+from datetime import datetime
+from pathlib import Path
+from typing import Type
+from fastapi import FastAPI, Depends, HTTPException, Request, Query
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from sqlalchemy import select, func, or_, desc
+from sqlalchemy.orm import Session
+from .config import get_settings
+from .database import Base, engine, get_db, SessionLocal
+from .models import User, UserRole, Farmer, Buyer, Order, MembershipApplication, Payment, AuditLog
+from .schemas import LoginIn, ChangePasswordIn, UserCreate, UserOut, TokenOut, FarmerCreate, BuyerCreate, OrderCreate, MembershipCreate, RecordUpdate, PaymentCreate, PaymentUpdate
+from .security import hash_password, verify_password, create_access_token
+from .deps import current_user, ceo_user
+from .utils import make_reference, audit
+
+settings = get_settings()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    Base.metadata.create_all(engine)
+    if settings.initial_ceo_email and settings.initial_ceo_password:
+        with SessionLocal() as db:
+            if not db.scalar(select(User).where(User.email == settings.initial_ceo_email.lower())):
+                db.add(User(full_name=settings.initial_ceo_name, email=settings.initial_ceo_email.lower(), password_hash=hash_password(settings.initial_ceo_password), role=UserRole.CEO.value, job_title="Founder & Chief Executive Officer", must_change_password=True))
+                db.commit()
+    yield
+
+app = FastAPI(title=settings.app_name, version="1.0.0", lifespan=lifespan)
+app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origin_list, allow_credentials=True, allow_methods=["*"] , allow_headers=["*"])
+
+@app.get("/api/health")
+def health(): return {"status":"ok","service":settings.app_name,"environment":settings.environment}
+
+@app.post("/api/auth/login", response_model=TokenOut)
+def login(data: LoginIn, request: Request, db: Session = Depends(get_db)):
+    user = db.scalar(select(User).where(User.email == data.email.lower()))
+    if not user or not user.is_active or not verify_password(data.password, user.password_hash): raise HTTPException(401, "Invalid email or password")
+    user.last_login_at = datetime.utcnow(); audit(db,user,"Signed in","user",user.id,ip=request.client.host if request.client else None); db.commit(); db.refresh(user)
+    return TokenOut(access_token=create_access_token(str(user.id), user.role), user=user)
+
+@app.get("/api/auth/me", response_model=UserOut)
+def me(user: User = Depends(current_user)): return user
+
+@app.post("/api/auth/change-password")
+def change_password(data: ChangePasswordIn, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    if not verify_password(data.current_password, user.password_hash): raise HTTPException(400,"Current password is incorrect")
+    user.password_hash=hash_password(data.new_password); user.must_change_password=False; audit(db,user,"Changed password","user",user.id); db.commit(); return {"message":"Password updated"}
+
+@app.post("/api/public/farmers", status_code=201)
+def create_farmer(data: FarmerCreate, request: Request, db: Session=Depends(get_db)):
+    rec=Farmer(reference=make_reference("FAR"), **data.model_dump()); db.add(rec); db.flush(); audit(db,None,"Submitted farmer registration","farmer",rec.id,{"reference":rec.reference},request.client.host if request.client else None); db.commit(); return {"id":rec.id,"reference":rec.reference,"status":rec.status}
+
+@app.post("/api/public/buyers", status_code=201)
+def create_buyer(data: BuyerCreate, request: Request, db: Session=Depends(get_db)):
+    rec=Buyer(reference=make_reference("BUY"), **data.model_dump()); db.add(rec); db.flush(); audit(db,None,"Submitted buyer registration","buyer",rec.id,{"reference":rec.reference},request.client.host if request.client else None); db.commit(); return {"id":rec.id,"reference":rec.reference,"status":rec.status}
+
+@app.post("/api/public/orders", status_code=201)
+def create_order(data: OrderCreate, request: Request, db: Session=Depends(get_db)):
+    rec=Order(reference=make_reference("ORD"), **data.model_dump()); db.add(rec); db.flush(); audit(db,None,"Submitted bulk order","order",rec.id,{"reference":rec.reference},request.client.host if request.client else None); db.commit(); return {"id":rec.id,"reference":rec.reference,"status":rec.status}
+
+@app.post("/api/public/memberships", status_code=201)
+def create_membership(data: MembershipCreate, request: Request, db: Session=Depends(get_db)):
+    rec=MembershipApplication(reference=make_reference("MEM"), **data.model_dump()); db.add(rec); db.flush(); audit(db,None,"Submitted membership application","membership",rec.id,{"reference":rec.reference},request.client.host if request.client else None); db.commit(); return {"id":rec.id,"reference":rec.reference,"status":rec.status}
+
+MODEL_MAP={"farmers":Farmer,"buyers":Buyer,"orders":Order,"memberships":MembershipApplication}
+
+def serialize(rec):
+    out={c.name:getattr(rec,c.name) for c in rec.__table__.columns}
+    if hasattr(rec,"assigned_to") and rec.assigned_to: out["assigned_to"]={"id":rec.assigned_to.id,"full_name":rec.assigned_to.full_name}
+    return out
+
+@app.get("/api/admin/dashboard")
+def dashboard(db: Session=Depends(get_db), user: User=Depends(current_user)):
+    counts={}
+    for key,model in MODEL_MAP.items():
+        counts[key]={"total":db.scalar(select(func.count()).select_from(model)) or 0,"pending":db.scalar(select(func.count()).select_from(model).where(model.status=="Pending")) or 0}
+    counts["open_orders"]=db.scalar(select(func.count()).select_from(Order).where(Order.status.in_(["Pending","Approved","In progress"]))) or 0
+    counts["completed"]=sum(db.scalar(select(func.count()).select_from(m).where(m.status.in_(["Approved","Completed"]))) or 0 for m in MODEL_MAP.values())
+    latest=[]
+    for typ,m in MODEL_MAP.items():
+        for r in db.scalars(select(m).order_by(desc(m.created_at)).limit(5)):
+            latest.append({"type":typ[:-1], **serialize(r)})
+    latest=sorted(latest,key=lambda x:x["created_at"],reverse=True)[:10]
+    return {"counts":counts,"latest":latest}
+
+@app.get("/api/admin/{resource}")
+def list_records(resource: str, q: str|None=None, status: str|None=None, limit:int=Query(100,le=500), offset:int=0, db:Session=Depends(get_db), user:User=Depends(current_user)):
+    model=MODEL_MAP.get(resource)
+    if not model: raise HTTPException(404,"Unknown resource")
+    stmt=select(model)
+    if status and status!="all": stmt=stmt.where(model.status==status)
+    if q:
+        fields=[]
+        for name in ["reference","farm_name","business_name","contact_person","location","delivery_area","email","phone"]:
+            if hasattr(model,name): fields.append(getattr(model,name).ilike(f"%{q}%"))
+        if fields: stmt=stmt.where(or_(*fields))
+    total=db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+    rows=db.scalars(stmt.order_by(desc(model.created_at)).offset(offset).limit(limit)).all()
+    return {"total":total,"items":[serialize(x) for x in rows]}
+
+@app.get("/api/admin/{resource}/{record_id}")
+def get_record(resource:str, record_id:int, db:Session=Depends(get_db), user:User=Depends(current_user)):
+    model=MODEL_MAP.get(resource); rec=db.get(model,record_id) if model else None
+    if not rec: raise HTTPException(404,"Record not found")
+    return serialize(rec)
+
+@app.patch("/api/admin/{resource}/{record_id}")
+def update_record(resource:str, record_id:int, data:RecordUpdate, request:Request, db:Session=Depends(get_db), user:User=Depends(current_user)):
+    model=MODEL_MAP.get(resource); rec=db.get(model,record_id) if model else None
+    if not rec: raise HTTPException(404,"Record not found")
+    changes={}
+    for k,v in data.model_dump(exclude_unset=True).items():
+        if k=="quoted_amount" and not hasattr(rec,k): continue
+        if k=="assigned_to_id" and v is not None:
+            assignee=db.get(User,v)
+            if not assignee or not assignee.is_active: raise HTTPException(400,"Invalid assignee")
+        old=getattr(rec,k,None); setattr(rec,k,v); changes[k]={"from":str(old),"to":str(v)}
+    audit(db,user,"Updated record",resource[:-1],rec.id,{"reference":rec.reference,"changes":changes},request.client.host if request.client else None); db.commit(); db.refresh(rec); return serialize(rec)
+
+@app.get("/api/admin/users", response_model=list[UserOut])
+def users(db:Session=Depends(get_db), user:User=Depends(current_user)): return db.scalars(select(User).order_by(User.full_name)).all()
+
+@app.post("/api/admin/users", response_model=UserOut, status_code=201)
+def create_user(data:UserCreate, db:Session=Depends(get_db), ceo:User=Depends(ceo_user)):
+    if db.scalar(select(User).where(User.email==data.email.lower())): raise HTTPException(409,"Email already exists")
+    u=User(full_name=data.full_name,email=data.email.lower(),job_title=data.job_title,password_hash=hash_password(data.temporary_password),role=UserRole.ADMIN.value,must_change_password=True)
+    db.add(u); db.flush(); audit(db,ceo,"Created administrator","user",u.id,{"email":u.email}); db.commit(); db.refresh(u); return u
+
+@app.patch("/api/admin/users/{user_id}/status", response_model=UserOut)
+def user_status(user_id:int, active:bool, db:Session=Depends(get_db), ceo:User=Depends(ceo_user)):
+    u=db.get(User,user_id)
+    if not u: raise HTTPException(404,"Administrator not found")
+    if u.role==UserRole.CEO.value: raise HTTPException(400,"CEO account cannot be suspended")
+    u.is_active=active; audit(db,ceo,"Activated administrator" if active else "Suspended administrator","user",u.id); db.commit(); db.refresh(u); return u
+
+@app.delete("/api/admin/users/{user_id}", status_code=204)
+def delete_user(user_id:int, db:Session=Depends(get_db), ceo:User=Depends(ceo_user)):
+    u=db.get(User,user_id)
+    if not u: raise HTTPException(404,"Administrator not found")
+    if u.role==UserRole.CEO.value: raise HTTPException(400,"CEO account cannot be removed")
+    audit(db,ceo,"Removed administrator","user",u.id,{"email":u.email}); db.delete(u); db.commit()
+
+@app.get("/api/admin/audit")
+def audit_logs(limit:int=Query(100,le=500), db:Session=Depends(get_db), user:User=Depends(current_user)):
+    rows=db.scalars(select(AuditLog).order_by(desc(AuditLog.created_at)).limit(limit)).all(); return [{c.name:getattr(r,c.name) for c in r.__table__.columns} for r in rows]
+
+@app.get("/api/admin/payments")
+def payments(db:Session=Depends(get_db), user:User=Depends(current_user)):
+    rows=db.scalars(select(Payment).order_by(desc(Payment.created_at))).all(); return [{c.name:getattr(r,c.name) for c in r.__table__.columns} for r in rows]
+
+@app.post("/api/admin/payments", status_code=201)
+def create_payment(data:PaymentCreate, db:Session=Depends(get_db), user:User=Depends(current_user)):
+    p=Payment(reference=make_reference("PAY"),**data.model_dump()); db.add(p); db.flush(); audit(db,user,"Created payment record","payment",p.id,{"reference":p.reference}); db.commit(); return {c.name:getattr(p,c.name) for c in p.__table__.columns}
+
+@app.patch("/api/admin/payments/{payment_id}")
+def update_payment(payment_id:int,data:PaymentUpdate,db:Session=Depends(get_db),user:User=Depends(current_user)):
+    p=db.get(Payment,payment_id)
+    if not p: raise HTTPException(404,"Payment not found")
+    for k,v in data.model_dump(exclude_unset=True).items(): setattr(p,k,v)
+    audit(db,user,"Updated payment","payment",p.id,{"status":p.status}); db.commit(); return {c.name:getattr(p,c.name) for c in p.__table__.columns}
+
+FRONTEND = Path(__file__).resolve().parents[2] / "frontend"
+if FRONTEND.exists():
+    app.mount("/assets", StaticFiles(directory=FRONTEND / "assets"), name="assets")
+    app.mount("/admin/static", StaticFiles(directory=FRONTEND / "admin"), name="admin-static")
+    @app.get("/")
+    def home(): return FileResponse(FRONTEND / "index.html")
+    @app.get("/styles.css")
+    def styles(): return FileResponse(FRONTEND / "styles.css", media_type="text/css")
+    @app.get("/script.js")
+    def script(): return FileResponse(FRONTEND / "script.js", media_type="application/javascript")
+    @app.get("/admin")
+    @app.get("/admin/")
+    def admin_page(): return FileResponse(FRONTEND / "admin" / "index.html")
+    @app.get("/admin/admin.css")
+    def admin_css(): return FileResponse(FRONTEND / "admin" / "admin.css", media_type="text/css")
+    @app.get("/admin/admin.js")
+    def admin_js(): return FileResponse(FRONTEND / "admin" / "admin.js", media_type="application/javascript")
