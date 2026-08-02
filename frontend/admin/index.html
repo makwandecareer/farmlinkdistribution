@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#073827">
   <title>FarmLink Administration Centre</title>
-  <link rel="stylesheet" href="/admin/admin.css?v=2.2">
+  <link rel="stylesheet" href="/admin/admin.css?v=3.0">
 </head>
 <body>
 <section id="loginScreen" class="login-shell">
@@ -59,7 +59,18 @@
   <div class="workspace">
     <header class="topbar">
       <div><span class="kicker">FarmLink Distribution</span><h1 id="pageTitle">Executive overview</h1></div>
-      <div class="top-actions"><span class="health"><i></i>Live system</span><button class="btn btn-secondary" id="refresh">Refresh</button></div>
+      <div class="top-actions">
+        <button class="icon-btn top-icon" id="mobileNav" aria-label="Open navigation" title="Menu">☰</button>
+        <span class="health"><i></i>Live system</span>
+        <button class="btn btn-secondary" id="refresh">Refresh</button>
+        <div class="account-menu">
+          <button id="accountToggle" class="account-trigger" aria-expanded="false"><span class="avatar mini" id="topAvatar">FG</span><span class="account-copy"><strong id="topName">Account</strong><small id="topRole">Administrator</small></span><span>⌄</span></button>
+          <div id="accountDropdown" class="account-dropdown hidden">
+            <button id="profileAction">Profile & security</button>
+            <button id="accountLogout">Sign out</button>
+          </div>
+        </div>
+      </div>
     </header>
     <main>
       <section id="dashboard" class="view active"></section>
@@ -72,6 +83,6 @@
 </div>
 <div id="drawerBackdrop" class="backdrop hidden"></div><aside id="drawer" class="drawer hidden"><button id="closeDrawer" class="icon-btn">×</button><div id="drawerBody"></div></aside>
 <div id="modalBackdrop" class="backdrop hidden"></div><section id="modal" class="modal hidden"><button id="closeModal" class="icon-btn">×</button><div id="modalBody"></div></section>
-<div id="toast" class="toast" role="status"></div>
-<script src="/admin/admin.js?v=2.2"></script>
+<div id="mobileBackdrop" class="mobile-backdrop hidden"></div><div id="toast" class="toast" role="status"></div>
+<script src="/admin/admin.js?v=3.0"></script>
 </body></html>
