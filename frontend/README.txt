@@ -1,17 +1,30 @@
-FarmLink frontend-to-backend connection patch
+FarmLink Administration Centre V4
 
-Replace these files in your local repository:
-- frontend/script.js
-- frontend/admin/admin.js
+This package replaces only:
+  frontend/admin/
+  frontend/assets/
 
-Backend API configured:
-https://farmlinkdistribution.onrender.com/api
+Included upgrades:
+- Live Chart.js revenue chart with PNG export
+- Global search across farmers, buyers, orders and memberships (Ctrl+K)
+- Live notifications dropdown
+- Dark mode with saved preference
+- Executive quick actions and expanded KPIs
+- Smart empty states and skeleton loading
+- Sortable tables and CSV export
+- Professional SVG navigation icons
+- Keyboard shortcuts: O orders, I finance
+- Existing inventory, logistics, quality, finance, documents, communications, users and audit modules preserved
 
-After replacement:
-1. git add frontend/script.js frontend/admin/admin.js
-2. git commit -m "Connect frontend to live Render API"
-3. git push origin main
+Install from E:\farmlink-production after extracting this ZIP:
+  xcopy frontend frontend /E /I /Y
+  git add frontend\admin frontend\assets
+  git commit -m "Upgrade FarmLink admin to V4 enterprise dashboard"
+  git push origin main
 
-In the Render backend environment, set CORS_ORIGINS to include the frontend URL after the frontend is deployed.
-Example:
-CORS_ORIGINS=https://farmlinkdistribution-web.onrender.com,http://localhost:8000,http://127.0.0.1:8000
+After Render deploys, open:
+  https://farmlinkdistribution-1ndv.onrender.com/admin/
+
+Then press Ctrl+Shift+R.
+
+The admin page references Chart.js from jsDelivr. If your organisation blocks third-party CDNs, download Chart.js locally and change the script reference in frontend/admin/index.html.
