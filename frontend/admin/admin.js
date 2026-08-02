@@ -65,4 +65,96 @@ $('#mobileBackdrop').onclick=()=>{$('.sidebar').classList.remove('open');$('#mob
 $$('#nav button').forEach(b=>b.addEventListener('click',()=>{$('.sidebar').classList.remove('open');$('#mobileBackdrop').classList.add('hidden')}));
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawer();closeModal();accountDropdown.classList.add('hidden');$('.sidebar').classList.remove('open');$('#mobileBackdrop').classList.add('hidden')}});
 
+// V4 boot moved to end of file
+
+
+/* FarmLink Admin V4 — executive productivity and intelligence */
+const ICONS={
+ dashboard:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>',
+ farmers:'<svg viewBox="0 0 24 24"><path d="M12 21V10"/><path d="M7 15c-3 0-4-2-4-5 3 0 5 1 6 4"/><path d="M17 12c3 0 4-2 4-5-3 0-5 1-6 4"/><path d="M8 21h8"/></svg>',
+ buyers:'<svg viewBox="0 0 24 24"><path d="M4 10h16"/><path d="M5 10V5h14v5"/><path d="M6 10v9h12v-9"/><path d="M9 14h6"/></svg>',
+ orders:'<svg viewBox="0 0 24 24"><path d="M6 3h12v18H6z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>',
+ memberships:'<svg viewBox="0 0 24 24"><path d="M12 3l3 6 6 .9-4.5 4.4 1.1 6.2L12 17.6 6.4 20.5l1.1-6.2L3 9.9 9 9z"/></svg>',
+ inventory:'<svg viewBox="0 0 24 24"><path d="M4 7l8-4 8 4-8 4z"/><path d="M4 7v10l8 4 8-4V7"/><path d="M12 11v10"/></svg>',
+ logistics:'<svg viewBox="0 0 24 24"><path d="M3 6h11v10H3z"/><path d="M14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg>',
+ quality:'<svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.4 8.2-8 9-4.6-.8-8-4-8-9V7z"/><path d="M8.5 12l2.2 2.2L16 9"/></svg>',
+ finance:'<svg viewBox="0 0 24 24"><path d="M4 7h16v12H4z"/><path d="M4 10h16"/><path d="M8 15h3"/></svg>',
+ payments:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.8-.7-1.8-1-3-1-1.7 0-3 .8-3 2s1 1.8 3 2 3 1 3 2.2-1.3 2.1-3 2.1c-1.3 0-2.4-.4-3.2-1.2M12 6.5v11"/></svg>',
+ notifications:'<svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 00-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>',
+ documents:'<svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>',
+ users:'<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21c.5-4 3-6 7-6s6.5 2 7 6"/><path d="M18 8v6M15 11h6"/></svg>',
+ audit:'<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 109-9 9 9 0 00-6.4 2.6L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>'
+};
+function installIcons(){
+  $$('#nav button').forEach(button=>{const key=button.dataset.view;const slot=button.querySelector('span');if(slot){slot.className='nav-icon';slot.innerHTML=ICONS[key]||'';}});
+}
+
+const originalShowView=showView;
+showView=async function(name){
+  const target=$('#'+name);
+  if(target && name!=='dashboard') target.innerHTML=`<div class="skeleton-page"><div class="skeleton skeleton-banner"></div><div class="skeleton skeleton-panel"></div></div>`;
+  await originalShowView(name);
+  requestAnimationFrame(()=>enhanceTables(target));
+};
+
+let revenueChart=null;
+loadDashboard=async function(){
+  const dashboard=$('#dashboard');
+  dashboard.innerHTML=`<div class="skeleton-page"><div class="skeleton skeleton-banner"></div><div class="skeleton-cards">${'<div class="skeleton skeleton-card"></div>'.repeat(5)}</div><div class="skeleton skeleton-panel"></div></div>`;
+  const [d,a]=await Promise.all([api('/admin/dashboard'),api('/admin/analytics')]);
+  const c=d.counts||{};
+  const pendingFarmers=c.farmers?.pending||0,pendingBuyers=c.buyers?.pending||0,openOrders=c.open_orders||0;
+  dashboard.innerHTML=`
+  <div class="command-banner"><div><span class="kicker light">Operations command</span><h2>National distribution oversight from one accountable system.</h2><p>Monitor registrations, revenue, supply, fulfilment, quality and team activity in real time.</p></div><div class="command-date"><strong>${new Intl.DateTimeFormat('en-ZA',{dateStyle:'full'}).format(new Date())}</strong><span>Gauteng headquarters · Nationwide coordination</span></div></div>
+  <div class="quick-actions">
+    <button class="quick-action" data-jump="farmers"><b>+</b>Review farmers</button><button class="quick-action" data-jump="buyers"><b>+</b>Review buyers</button><button class="quick-action" data-jump="orders"><b>+</b>Manage orders</button><button class="quick-action" data-jump="finance"><b>R</b>Create invoice</button><button class="quick-action" data-jump="users"><b>+</b>Add administrator</button>
+  </div>
+  <div class="metrics">
+    ${metricCard('Today revenue',fmtMoney(a.today_revenue),'Verified payments','R')}
+    ${metricCard('Month revenue',fmtMoney(a.month_revenue),'Current calendar month','↗')}
+    ${metricCard('Eggs traded',Number(a.total_trays||0).toLocaleString('en-ZA')+' trays','Recorded order volume','◉')}
+    ${metricCard('Active farmers',a.active_farmers||0,'Approved suppliers','♙')}
+    ${metricCard('Delivery performance',(a.delivery_performance||0)+'%','Completed dispatches','⇄')}
+  </div>
+  <div class="metrics secondary-metrics">
+    ${metricCard('Pending farmers',pendingFarmers,'Awaiting approval','!')}
+    ${metricCard('Pending buyers',pendingBuyers,'Awaiting approval','!')}
+    ${metricCard('Open orders',openOrders,'Current pipeline','◎')}
+    ${metricCard('Processed records',c.completed||0,'Completed workflow','✓')}
+    ${metricCard('Membership activity',c.memberships?.pending||0,'Pending applications','◇')}
+  </div>
+  <div class="grid-2"><article class="panel"><div class="panel-head"><div><span class="kicker">Commercial performance</span><h3>Revenue trend</h3></div><button class="link-btn" onclick="exportChart()">Export PNG</button></div><div class="chart-wrap"><canvas id="revenueChart"></canvas></div></article><article class="panel"><div class="panel-head"><div><span class="kicker">Buyer activity</span><h3>Top customers</h3></div></div><div class="rank-list">${a.top_buyers?.length?a.top_buyers.map((x,i)=>`<div class="rank-item"><span class="rank-num">${i+1}</span><strong>${esc(x.name)}</strong><span>${x.orders} orders</span></div>`).join(''):smartEmpty('No customers yet','Approved buyers and completed orders will appear here.','buyers','Review buyers')}</div></article></div>
+  <div class="grid-2" style="margin-top:18px"><article class="panel"><div class="panel-head"><div><span class="kicker">Order pipeline</span><h3>Latest submissions</h3></div></div>${d.latest?.length?d.latest.map(x=>`<div class="list-item"><div><strong>${esc(nameOf(x))}</strong><div class="ref">${esc(x.reference)}</div></div><span>${esc(labelOf(x.type))}</span>${badge(x.status)}<button class="link-btn" onclick="openRecord('${plural(x.type)}',${x.id})">Review</button></div>`).join(''):smartEmpty('No submissions yet','New farmer, buyer and order registrations will appear in this queue.','farmers','Open registrations')}</article><article class="panel"><div class="panel-head"><div><span class="kicker">Supplier strength</span><h3>Top capacity</h3></div></div><div class="rank-list">${a.top_suppliers?.length?a.top_suppliers.map((x,i)=>`<div class="rank-item"><span class="rank-num">${i+1}</span><strong>${esc(x.name)}</strong><span>${Number(x.capacity).toLocaleString()} trays/wk</span></div>`).join(''):smartEmpty('No supplier rankings yet','Approve farmers to begin tracking production capacity.','farmers','Review farmers')}</div></article></div>`;
+  $$('.quick-action').forEach(b=>b.onclick=()=>{const view=b.dataset.jump;showView(view);if(view==='finance')setTimeout(()=>window.openInvoiceModal?.(),350);if(view==='users')setTimeout(()=>window.openUserModal?.(),350)});
+  drawRevenueChart(a.revenue_series||[]);
+};
+function metricCard(label,value,sub,icon){return `<article class="metric"><span class="metric-icon">${icon}</span><span class="label">${label}</span><strong>${value}</strong><small>${sub}</small><span class="metric-trend">● Live data</span></article>`}
+function smartEmpty(title,text,view,action){return `<div class="empty-action"><div class="empty-icon">＋</div><h4>${title}</h4><p>${text}</p><button class="btn btn-secondary" onclick="showView('${view}')">${action}</button></div>`}
+function drawRevenueChart(series){
+  const canvas=$('#revenueChart');if(!canvas)return;
+  if(revenueChart)revenueChart.destroy();
+  if(!window.Chart){canvas.replaceWith(Object.assign(document.createElement('div'),{className:'empty',textContent:'Chart library unavailable.'}));return}
+  revenueChart=new Chart(canvas,{type:'line',data:{labels:series.map(x=>x.label),datasets:[{label:'Revenue (ZAR)',data:series.map(x=>Number(x.value||0)),borderColor:'#0d6547',backgroundColor:'rgba(13,101,71,.12)',fill:true,tension:.38,pointRadius:3,pointHoverRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtMoney(c.raw)}}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,ticks:{callback:v=>'R '+Number(v).toLocaleString('en-ZA')},grid:{color:'rgba(107,118,111,.13)'}}}}});
+}
+window.exportChart=()=>{if(!revenueChart)return toast('No chart available',false);const a=document.createElement('a');a.download='farmlink-revenue-trend.png';a.href=revenueChart.toBase64Image();a.click()};
+
+function enhanceTables(scope=document){
+  scope?.querySelectorAll?.('.table').forEach(table=>{
+    if(table.dataset.enhanced)return;table.dataset.enhanced='true';
+    const wrapper=table.closest('.table-wrap,.panel');
+    if(wrapper){const tools=document.createElement('div');tools.className='table-tools';tools.innerHTML='<button type="button">Export CSV</button>';tools.querySelector('button').onclick=()=>exportTableCSV(table);wrapper.insertBefore(tools,table);}
+    table.querySelectorAll('th').forEach((th,index)=>{if(!th.textContent.trim())return;th.classList.add('sortable');th.onclick=()=>sortTable(table,index,th)});
+  });
+}
+function sortTable(table,index,th){const body=table.tBodies[0];if(!body)return;const asc=!th.classList.contains('sort-asc');table.querySelectorAll('th').forEach(x=>x.classList.remove('sort-asc','sort-desc'));th.classList.add(asc?'sort-asc':'sort-desc');[...body.rows].sort((a,b)=>{const av=a.cells[index]?.innerText.trim()||'',bv=b.cells[index]?.innerText.trim()||'';const an=Number(av.replace(/[^0-9.-]/g,'')),bn=Number(bv.replace(/[^0-9.-]/g,''));const cmp=!Number.isNaN(an)&&!Number.isNaN(bn)?an-bn:av.localeCompare(bv,undefined,{numeric:true});return asc?cmp:-cmp}).forEach(r=>body.appendChild(r))}
+function exportTableCSV(table){const rows=[...table.rows].map(row=>[...row.cells].map(cell=>'"'+cell.innerText.replaceAll('"','""').trim()+'"').join(','));const blob=new Blob([rows.join('\n')],{type:'text/csv'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='farmlink-export-'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(url)}
+const tableObserver=new MutationObserver(()=>enhanceTables(document));tableObserver.observe(document.querySelector('main'),{subtree:true,childList:true});
+
+function setupTheme(){const saved=localStorage.getItem('farmlink_theme');if(saved==='dark')document.body.classList.add('dark');$('#themeToggle').onclick=()=>{document.body.classList.toggle('dark');localStorage.setItem('farmlink_theme',document.body.classList.contains('dark')?'dark':'light')}}
+function setupGlobalSearch(){const overlay=$('#globalSearch'),input=$('#globalSearchInput'),results=$('#globalSearchResults');const open=()=>{overlay.classList.remove('hidden');setTimeout(()=>input.focus(),20)},close=()=>overlay.classList.add('hidden');$('#globalSearchTrigger').onclick=open;overlay.onclick=e=>{if(e.target===overlay)close()};input.oninput=debounce(async()=>{const q=input.value.trim();if(q.length<2){results.innerHTML='<div class="search-hint">Enter at least two characters.</div>';return}results.innerHTML='<div class="search-hint">Searching FarmLink...</div>';try{const resources=['farmers','buyers','orders','memberships'];const responses=await Promise.all(resources.map(r=>api(`/admin/${r}?q=${encodeURIComponent(q)}&status=all`).catch(()=>({items:[]}))));const items=responses.flatMap((r,i)=>(r.items||[]).map(x=>({...x,_resource:resources[i]}))).slice(0,30);results.innerHTML=items.length?items.map(x=>`<div class="search-result" data-resource="${x._resource}" data-id="${x.id}"><div><strong>${esc(nameOf(x))}</strong><span>${esc(x.reference||'')} · ${esc(x._resource)}</span></div>${badge(x.status||'Record')}</div>`).join(''):'<div class="search-hint">No matching records.</div>';results.querySelectorAll('.search-result').forEach(row=>row.onclick=()=>{close();showView(row.dataset.resource);setTimeout(()=>openRecord(row.dataset.resource,Number(row.dataset.id)),250)})}catch(e){results.innerHTML=`<div class="search-hint">${esc(e.message)}</div>`}},280);document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();open()}if(e.key==='Escape')close()})}
+async function loadNotificationMenu(){try{const rows=await api('/admin/notifications');const recent=rows.slice(0,8),badgeEl=$('#notificationBadge');badgeEl.textContent=recent.length;badgeEl.classList.toggle('hidden',!recent.length);$('#notificationList').innerHTML=recent.length?recent.map(x=>`<div class="notification-item"><i class="notification-dot"></i><div><strong>${esc(x.subject||x.channel+' notification')}</strong><span>${esc(x.recipient)} · ${fmtDate(x.sent_at||x.created_at)}</span></div></div>`).join(''):'<div class="search-hint">No notifications.</div>'}catch{$('#notificationList').innerHTML='<div class="search-hint">Unable to load notifications.</div>'}}
+function setupNotifications(){const menu=$('#notificationDropdown');$('#notificationToggle').onclick=async()=>{menu.classList.toggle('hidden');if(!menu.classList.contains('hidden'))await loadNotificationMenu()};$('#markNotificationsRead').onclick=()=>{$('#notificationBadge').classList.add('hidden');menu.classList.add('hidden')};document.addEventListener('click',e=>{if(!e.target.closest('.notification-menu'))menu.classList.add('hidden')})}
+function setupShortcuts(){document.addEventListener('keydown',e=>{if(e.target.matches('input,textarea,select'))return;if(e.key.toLowerCase()==='o')showView('orders');if(e.key.toLowerCase()==='i')showView('finance')})}
+
+installIcons();setupTheme();setupGlobalSearch();setupNotifications();setupShortcuts();
 if(token)start();
