@@ -1,12 +1,1 @@
-{
-  "name": "FarmLink Distribution",
-  "short_name": "FarmLink",
-  "description": "Agricultural market access, supplier registration and nationwide distribution coordination.",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#073827",
-  "icons": [
-    {"src": "assets/farmlink-logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
-  ]
-}
+{"name":"FarmLink Distribution","short_name":"FarmLink","start_url":"./","display":"standalone","background_color":"#f3f5f2","theme_color":"#062e21","icons":[{"src":"assets/farmlink-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}

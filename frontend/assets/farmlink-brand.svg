@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 220" role="img" aria-labelledby="title desc">
+<title id="title">FarmLink Distribution</title><desc id="desc">A modern egg and agricultural network emblem with FarmLink wordmark.</desc>
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#E2B64E"/><stop offset="1" stop-color="#A97A1B"/></linearGradient></defs>
+<g transform="translate(14 16)">
+<path d="M94 5c41 33 70 73 70 113 0 48-33 82-75 82S14 166 14 118C14 76 45 36 94 5Z" fill="#0B4A35"/>
+<path d="M94 28c28 27 47 59 47 87 0 31-20 52-47 52s-47-21-47-52c0-29 19-61 47-87Z" fill="url(#g)"/>
+<path d="M53 132c25-28 49-39 83-46" fill="none" stroke="#F7F2E7" stroke-width="12" stroke-linecap="round"/>
+<circle cx="66" cy="122" r="7" fill="#F7F2E7"/><circle cx="95" cy="104" r="7" fill="#F7F2E7"/><circle cx="126" cy="92" r="7" fill="#F7F2E7"/>
+</g>
+<g transform="translate(215 45)">
+<text x="0" y="70" font-family="Arial,Helvetica,sans-serif" font-size="75" font-weight="800" letter-spacing="-4" fill="#0B4A35">FARM</text>
+<text x="205" y="70" font-family="Arial,Helvetica,sans-serif" font-size="75" font-weight="800" letter-spacing="-4" fill="#C99B36">LINK</text>
+<line x1="4" y1="97" x2="432" y2="97" stroke="#D9E1DC" stroke-width="2"/>
+<text x="4" y="132" font-family="Arial,Helvetica,sans-serif" font-size="24" font-weight="700" letter-spacing="9" fill="#33443B">DISTRIBUTION</text>
+</g></svg>
