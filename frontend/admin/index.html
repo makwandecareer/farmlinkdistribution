@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#073827">
   <title>FarmLink Administration Centre</title>
-  <link rel="stylesheet" href="/admin/admin.css?v=4.0">
+  <link rel="stylesheet" href="/admin/admin.css?v=5.0">
 </head>
 <body>
 <section id="loginScreen" class="login-shell">
@@ -61,7 +61,7 @@
       <div><span class="kicker">FarmLink Distribution</span><h1 id="pageTitle">Executive overview</h1></div>
       <div class="top-actions">
         <button class="icon-btn top-icon" id="mobileNav" aria-label="Open navigation" title="Menu">☰</button>
-        <button class="global-search-trigger" id="globalSearchTrigger" title="Search (Ctrl+K)"><span>⌕</span><strong>Search</strong><kbd>Ctrl K</kbd></button>
+        <button class="global-search-trigger" id="globalSearchTrigger" title="Search (Ctrl+K)" aria-label="Open global search"><span class="search-symbol" aria-hidden="true">⌕</span><strong>Search</strong><kbd>Ctrl K</kbd></button>
         <span class="health"><i></i>Live system</span>
         <button class="icon-btn top-icon" id="themeToggle" aria-label="Toggle dark mode" title="Theme">◐</button>
         <div class="notification-menu">
@@ -70,7 +70,7 @@
         </div>
         <button class="btn btn-secondary" id="refresh">Refresh</button>
         <div class="account-menu">
-          <button id="accountToggle" class="account-trigger" aria-expanded="false"><span class="avatar mini" id="topAvatar">FG</span><span class="account-copy"><strong id="topName">Account</strong><small id="topRole">Administrator</small></span><span>⌄</span></button>
+          <button id="accountToggle" class="account-trigger" aria-expanded="false"><span class="avatar mini" id="topAvatar">FG</span><span class="account-copy"><strong id="topName">Account</strong><small id="topRole">Administrator</small></span><span class="account-chevron" aria-hidden="true">⌄</span></button>
           <div id="accountDropdown" class="account-dropdown hidden">
             <button id="profileAction">Profile & security</button>
             <button id="accountLogout">Sign out</button>
@@ -93,5 +93,5 @@
 <div id="globalSearch" class="search-overlay hidden"><div class="search-dialog"><div class="search-box"><span>⌕</span><input id="globalSearchInput" placeholder="Search farmers, buyers, orders, memberships..." autocomplete="off"><kbd>Esc</kbd></div><div id="globalSearchResults" class="search-results"><div class="search-hint">Start typing to search the entire FarmLink platform.</div></div></div></div>
 <div id="toast" class="toast" role="status"></div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-<script src="/admin/admin.js?v=4.0"></script>
+<script src="/admin/admin.js?v=5.0"></script>
 </body></html>
