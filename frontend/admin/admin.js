@@ -1,12 +1,16 @@
 const API = (() => {
   const configured = window.FARMLINK_API_URL?.trim();
-  if (configured) return configured.replace(/\/$/, '') + '/api';
+
+  if (configured) {
+    return configured.replace(/\/$/, "") + "/api";
+  }
+
+  return "https://farmlinkdistribution.onrender.com/api";
+})();
 
   const localHosts = new Set(['localhost', '127.0.0.1']);
   if (localHosts.has(window.location.hostname)) return 'http://localhost:8000/api';
 
-  return 'https://farmlinkdistribution.onrender.com/api';
-})();
 let token=localStorage.getItem('farmlink_token')||'';
 let currentUser=null;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
