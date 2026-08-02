@@ -17,6 +17,7 @@ class UserCreate(BaseModel):
     full_name: str = Field(min_length=2, max_length=160)
     email: EmailStr
     job_title: str = Field(min_length=2, max_length=160)
+    role: Literal["ADMIN","FINANCE","OPERATIONS","LOGISTICS","QUALITY"] = "ADMIN"
     temporary_password: str = Field(min_length=10, max_length=200)
 
 class UserOut(ORMModel):

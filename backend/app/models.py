@@ -1,13 +1,19 @@
 from __future__ import annotations
 from datetime import datetime, date
 from enum import Enum
-from sqlalchemy import String, Text, DateTime, Date, Integer, Boolean, ForeignKey, Numeric, JSON
+from sqlalchemy import String, Text, DateTime, Date, Integer, Boolean, ForeignKey, Numeric, JSON, LargeBinary
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .database import Base
 
 class UserRole(str, Enum):
     CEO = "CEO"
     ADMIN = "ADMIN"
+    FINANCE = "FINANCE"
+    OPERATIONS = "OPERATIONS"
+    LOGISTICS = "LOGISTICS"
+    QUALITY = "QUALITY"
+    FARMER = "FARMER"
+    BUYER = "BUYER"
 
 class RecordStatus(str, Enum):
     PENDING = "Pending"
@@ -154,4 +160,160 @@ class AuditLog(Base):
     entity_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     detail: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     ip_address: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+class InventoryLot(Base):
+    __tablename__ = "inventory_lots"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    reference: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+    farmer_id: Mapped[int] = mapped_column(ForeignKey("farmers.id"), index=True)
+    egg_size: Mapped[str] = mapped_column(String(60))
+    packaging: Mapped[str] = mapped_column(String(100))
+    trays_available: Mapped[int] = mapped_column(Integer, default=0)
+    unit_price: Mapped[float | None] = mapped_column(Numeric(12,2), nullable=True)
+    available_from: Mapped[date] = mapped_column(Date, default=date.today)
+    expiry_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default="Available")
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    farmer: Mapped[Farmer] = relationship()
+
+class Vehicle(Base):
+    __tablename__ = "vehicles"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    registration: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+    vehicle_type: Mapped[str] = mapped_column(String(80))
+    capacity_trays: Mapped[int] = mapped_column(Integer, default=0)
+    driver_name: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    driver_phone: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default="Available")
+    next_service_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+class Dispatch(Base):
+    __tablename__ = "dispatches"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    reference: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id"), index=True)
+    vehicle_id: Mapped[int | None] = mapped_column(ForeignKey("vehicles.id"), nullable=True)
+    driver_name: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    collection_location: Mapped[str] = mapped_column(String(255))
+    delivery_location: Mapped[str] = mapped_column(String(255))
+    scheduled_date: Mapped[datetime] = mapped_column(DateTime)
+    dispatched_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    trays: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(30), default="Scheduled")
+    tracking_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    order: Mapped[Order] = relationship()
+    vehicle: Mapped[Vehicle | None] = relationship()
+
+class QualityCase(Base):
+    __tablename__ = "quality_cases"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    reference: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+    order_id: Mapped[int | None] = mapped_column(ForeignKey("orders.id"), nullable=True)
+    farmer_id: Mapped[int | None] = mapped_column(ForeignKey("farmers.id"), nullable=True)
+    case_type: Mapped[str] = mapped_column(String(100))
+    trays_affected: Mapped[int] = mapped_column(Integer, default=0)
+    severity: Mapped[str] = mapped_column(String(30), default="Medium")
+    status: Mapped[str] = mapped_column(String(30), default="Open")
+    findings: Mapped[str | None] = mapped_column(Text, nullable=True)
+    corrective_action: Mapped[str | None] = mapped_column(Text, nullable=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+class Invoice(Base):
+    __tablename__ = "invoices"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    reference: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+    entity_type: Mapped[str] = mapped_column(String(40))
+    entity_id: Mapped[int] = mapped_column(Integer)
+    customer_name: Mapped[str] = mapped_column(String(200))
+    customer_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    description: Mapped[str] = mapped_column(Text)
+    subtotal: Mapped[float] = mapped_column(Numeric(12,2))
+    tax_amount: Mapped[float] = mapped_column(Numeric(12,2), default=0)
+    total_amount: Mapped[float] = mapped_column(Numeric(12,2))
+    amount_paid: Mapped[float] = mapped_column(Numeric(12,2), default=0)
+    status: Mapped[str] = mapped_column(String(30), default="Unpaid")
+    due_date: Mapped[date] = mapped_column(Date)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+class SupplierPayment(Base):
+    __tablename__ = "supplier_payments"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    reference: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+    farmer_id: Mapped[int] = mapped_column(ForeignKey("farmers.id"), index=True)
+    order_id: Mapped[int | None] = mapped_column(ForeignKey("orders.id"), nullable=True)
+    amount: Mapped[float] = mapped_column(Numeric(12,2))
+    method: Mapped[str] = mapped_column(String(80), default="EFT")
+    bank_reference: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default="Pending")
+    scheduled_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    farmer: Mapped[Farmer] = relationship()
+
+class PaymentTransaction(Base):
+    __tablename__ = "payment_transactions"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    reference: Mapped[str] = mapped_column(String(80), unique=True, index=True)
+    provider: Mapped[str] = mapped_column(String(40), default="Paystack")
+    entity_type: Mapped[str] = mapped_column(String(40))
+    entity_id: Mapped[int] = mapped_column(Integer)
+    payer_email: Mapped[str] = mapped_column(String(255))
+    amount: Mapped[float] = mapped_column(Numeric(12,2))
+    currency: Mapped[str] = mapped_column(String(10), default="ZAR")
+    status: Mapped[str] = mapped_column(String(30), default="Initialized")
+    authorization_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    provider_payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+class RefundRecord(Base):
+    __tablename__ = "refund_records"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    reference: Mapped[str] = mapped_column(String(40), unique=True)
+    payment_transaction_id: Mapped[int] = mapped_column(ForeignKey("payment_transactions.id"))
+    amount: Mapped[float] = mapped_column(Numeric(12,2))
+    reason: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(30), default="Requested")
+    provider_reference: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+class StoredDocument(Base):
+    __tablename__ = "stored_documents"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    reference: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+    entity_type: Mapped[str] = mapped_column(String(40), index=True)
+    entity_id: Mapped[int] = mapped_column(Integer, index=True)
+    document_type: Mapped[str] = mapped_column(String(80))
+    filename: Mapped[str] = mapped_column(String(255))
+    content_type: Mapped[str] = mapped_column(String(120))
+    file_size: Mapped[int] = mapped_column(Integer)
+    file_data: Mapped[bytes] = mapped_column(LargeBinary)
+    uploaded_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+class Notification(Base):
+    __tablename__ = "notifications"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    channel: Mapped[str] = mapped_column(String(30))
+    recipient: Mapped[str] = mapped_column(String(255))
+    subject: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    message: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(30), default="Queued")
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+class LoginAttempt(Base):
+    __tablename__ = "login_attempts"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(String(255), index=True)
+    ip_address: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    successful: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)

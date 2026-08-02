@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Type
 from fastapi import FastAPI, Depends, HTTPException, Request, Query
@@ -10,11 +10,12 @@ from sqlalchemy import select, func, or_, desc
 from sqlalchemy.orm import Session
 from .config import get_settings
 from .database import Base, engine, get_db, SessionLocal
-from .models import User, UserRole, Farmer, Buyer, Order, MembershipApplication, Payment, AuditLog
+from .models import User, UserRole, Farmer, Buyer, Order, MembershipApplication, Payment, AuditLog, LoginAttempt
 from .schemas import LoginIn, ChangePasswordIn, UserCreate, UserOut, TokenOut, FarmerCreate, BuyerCreate, OrderCreate, MembershipCreate, RecordUpdate, PaymentCreate, PaymentUpdate
 from .security import hash_password, verify_password, create_access_token
 from .deps import current_user, ceo_user
 from .utils import make_reference, audit
+from .operations import router as operations_router
 
 settings = get_settings()
 
@@ -30,15 +31,22 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title=settings.app_name, version="1.0.0", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origin_list, allow_credentials=True, allow_methods=["*"] , allow_headers=["*"])
+app.include_router(operations_router)
 
 @app.get("/api/health")
 def health(): return {"status":"ok","service":settings.app_name,"environment":settings.environment}
 
 @app.post("/api/auth/login", response_model=TokenOut)
 def login(data: LoginIn, request: Request, db: Session = Depends(get_db)):
-    user = db.scalar(select(User).where(User.email == data.email.lower()))
-    if not user or not user.is_active or not verify_password(data.password, user.password_hash): raise HTTPException(401, "Invalid email or password")
-    user.last_login_at = datetime.utcnow(); audit(db,user,"Signed in","user",user.id,ip=request.client.host if request.client else None); db.commit(); db.refresh(user)
+    email=data.email.lower(); ip=request.client.host if request.client else None; cutoff=datetime.utcnow()-timedelta(minutes=15)
+    failures=db.scalar(select(func.count()).select_from(LoginAttempt).where(LoginAttempt.email==email,LoginAttempt.successful==False,LoginAttempt.created_at>=cutoff)) or 0
+    if failures >= 5: raise HTTPException(429,"Too many failed sign-in attempts. Try again after 15 minutes.")
+    user = db.scalar(select(User).where(User.email == email))
+    success=bool(user and user.is_active and verify_password(data.password, user.password_hash))
+    db.add(LoginAttempt(email=email,ip_address=ip,successful=success))
+    if not success:
+        db.commit(); raise HTTPException(401, "Invalid email or password")
+    user.last_login_at = datetime.utcnow(); audit(db,user,"Signed in","user",user.id,ip=ip); db.commit(); db.refresh(user)
     return TokenOut(access_token=create_access_token(str(user.id), user.role), user=user)
 
 @app.get("/api/auth/me", response_model=UserOut)
@@ -126,7 +134,7 @@ def users(db:Session=Depends(get_db), user:User=Depends(current_user)): return d
 @app.post("/api/admin/users", response_model=UserOut, status_code=201)
 def create_user(data:UserCreate, db:Session=Depends(get_db), ceo:User=Depends(ceo_user)):
     if db.scalar(select(User).where(User.email==data.email.lower())): raise HTTPException(409,"Email already exists")
-    u=User(full_name=data.full_name,email=data.email.lower(),job_title=data.job_title,password_hash=hash_password(data.temporary_password),role=UserRole.ADMIN.value,must_change_password=True)
+    u=User(full_name=data.full_name,email=data.email.lower(),job_title=data.job_title,password_hash=hash_password(data.temporary_password),role=data.role,must_change_password=True)
     db.add(u); db.flush(); audit(db,ceo,"Created administrator","user",u.id,{"email":u.email}); db.commit(); db.refresh(u); return u
 
 @app.patch("/api/admin/users/{user_id}/status", response_model=UserOut)

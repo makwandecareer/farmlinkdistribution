@@ -12,6 +12,14 @@ class Settings(BaseSettings):
     initial_ceo_name: str = "Makwande Gcora"
     initial_ceo_email: str = ""
     initial_ceo_password: str = ""
+    paystack_public_key: str = ""
+    paystack_secret_key: str = ""
+    paystack_callback_url: str = ""
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_from_email: str = ""
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     @property
