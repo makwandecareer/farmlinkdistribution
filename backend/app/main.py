@@ -120,6 +120,13 @@ def delete_user(user_id:int, db:Session=Depends(get_db), ceo:User=Depends(ceo_us
     if u.role==UserRole.CEO.value: raise HTTPException(400,"CEO account cannot be removed")
     audit(db,ceo,"Removed administrator","user",u.id,{"email":u.email}); db.delete(u); db.commit()
 
+# IMPORTANT: Keep the static audit route above the generic
+# /api/admin/{resource} route. Otherwise "/api/admin/audit" is interpreted
+# as resource="audit" and the generic handler returns 404.
+@app.get("/api/admin/audit")
+def audit_logs(limit:int=Query(100,le=500), db:Session=Depends(get_db), user:User=Depends(current_user)):
+    rows=db.scalars(select(AuditLog).order_by(desc(AuditLog.created_at)).limit(limit)).all(); return [{c.name:getattr(r,c.name) for c in r.__table__.columns} for r in rows]
+
 @app.get("/api/admin/{resource}")
 def list_records(resource: str, q: str|None=None, status: str|None=None, limit:int=Query(100,le=500), offset:int=0, db:Session=Depends(get_db), user:User=Depends(current_user)):
     model=MODEL_MAP.get(resource)
@@ -153,10 +160,6 @@ def update_record(resource:str, record_id:int, data:RecordUpdate, request:Reques
             if not assignee or not assignee.is_active: raise HTTPException(400,"Invalid assignee")
         old=getattr(rec,k,None); setattr(rec,k,v); changes[k]={"from":str(old),"to":str(v)}
     audit(db,user,"Updated record",resource[:-1],rec.id,{"reference":rec.reference,"changes":changes},request.client.host if request.client else None); db.commit(); db.refresh(rec); return serialize(rec)
-
-@app.get("/api/admin/audit")
-def audit_logs(limit:int=Query(100,le=500), db:Session=Depends(get_db), user:User=Depends(current_user)):
-    rows=db.scalars(select(AuditLog).order_by(desc(AuditLog.created_at)).limit(limit)).all(); return [{c.name:getattr(r,c.name) for c in r.__table__.columns} for r in rows]
 
 @app.get("/api/admin/payments")
 def payments(db:Session=Depends(get_db), user:User=Depends(current_user)):
