@@ -263,10 +263,62 @@ window.resetAdministratorPassword=id=>openForm('Reset administrator password',`
   async()=>{await api(`/admin/users/${id}/reset-password`,{method:'POST',body:JSON.stringify({temporary_password:$('#rPass').value})});toast('Temporary password created');await loadUsers();});
 
 window.viewAdministratorAudit=async id=>{
-  const rows=await api(`/admin/users/${id}/audit`);
-  openDrawer(`<span class="kicker">Security history</span><h2>Administrator audit history</h2><div class="panel table-wrap">${rows.length?table(
-    ['Date','Actor','Action','Entity'],rows.map(r=>[new Date(r.created_at).toLocaleString('en-ZA'),esc(r.actor_name||'System'),esc(r.action),`${esc(r.entity_type)}${r.entity_id?' #'+r.entity_id:''}`])
-  ):empty('No audit history is available for this account.')}</div>`);
+  openDrawer('<div class="drawer-loading"><span></span><strong>Loading audit history…</strong></div>');
+  try{
+    const rows=await api(`/admin/users/${id}/audit`);
+    const content=rows.length
+      ? `<div class="audit-history-list">${rows.map(r=>`
+          <article class="audit-history-item">
+            <div class="audit-history-top">
+              <strong>${esc(r.action||'Activity')}</strong>
+              <time>${r.created_at?new Date(r.created_at).toLocaleString('en-ZA'):'—'}</time>
+            </div>
+            <div class="audit-history-meta">
+              <span><b>Actor</b>${esc(r.actor_name||'System')}</span>
+              <span><b>Entity</b>${esc(r.entity_type||'—')}${r.entity_id?' #'+r.entity_id:''}</span>
+              <span><b>IP address</b>${esc(r.ip_address||'—')}</span>
+            </div>
+          </article>`).join('')}</div>`
+      : `<div class="empty"><strong>No audit history</strong><p>No administrator-specific activity has been recorded yet.</p></div>`;
+
+    openDrawer(`
+      <div class="audit-drawer-head">
+        <div>
+          <span class="kicker">Security history</span>
+          <h2>Administrator audit history</h2>
+          <p class="muted">Chronological account activity and governance events.</p>
+        </div>
+        <span class="formal-badge">${rows.length} record${rows.length===1?'':'s'}</span>
+      </div>
+      <div class="audit-history-toolbar">
+        <input id="adminAuditSearch" placeholder="Search activity, actor or entity">
+      </div>
+      <div id="adminAuditResults">${content}</div>
+    `);
+
+    const render=()=>{
+      const q=$('#adminAuditSearch').value.trim().toLowerCase();
+      const filtered=rows.filter(r=>`${r.action||''} ${r.actor_name||''} ${r.entity_type||''} ${r.entity_id||''} ${r.ip_address||''}`.toLowerCase().includes(q));
+      $('#adminAuditResults').innerHTML=filtered.length
+        ? `<div class="audit-history-list">${filtered.map(r=>`
+            <article class="audit-history-item">
+              <div class="audit-history-top">
+                <strong>${esc(r.action||'Activity')}</strong>
+                <time>${r.created_at?new Date(r.created_at).toLocaleString('en-ZA'):'—'}</time>
+              </div>
+              <div class="audit-history-meta">
+                <span><b>Actor</b>${esc(r.actor_name||'System')}</span>
+                <span><b>Entity</b>${esc(r.entity_type||'—')}${r.entity_id?' #'+r.entity_id:''}</span>
+                <span><b>IP address</b>${esc(r.ip_address||'—')}</span>
+              </div>
+            </article>`).join('')}</div>`
+        : `<div class="empty"><strong>No matching activity</strong><p>Try another search term.</p></div>`;
+    };
+    $('#adminAuditSearch').oninput=debounce(render,160);
+  }catch(e){
+    console.error('Administrator audit history error:',e);
+    openDrawer(`<div class="drawer-error"><strong>Unable to load audit history</strong><p>${esc(e?.message||'The administrator audit history could not be loaded.')}</p><button class="btn btn-secondary" onclick="closeDrawer()">Close</button></div>`);
+  }
 };
 
 window.openUserModal=()=>{

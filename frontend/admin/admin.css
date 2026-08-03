@@ -198,3 +198,30 @@ button{white-space:nowrap}
 
 /* Administrator profile helper fix V8.3 */
 .profile-section .detail strong{overflow-wrap:anywhere}
+
+/* Responsive administrator audit history V8.4 */
+.audit-drawer-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.audit-drawer-head h2{margin:5px 0 4px}
+.audit-history-toolbar{margin:16px 0}
+.audit-history-toolbar input{width:100%}
+.audit-history-list{display:grid;gap:10px}
+.audit-history-item{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fff}
+.audit-history-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.audit-history-top strong{font-size:.8rem;color:var(--green-900)}
+.audit-history-top time{font-size:.67rem;color:var(--muted);white-space:nowrap}
+.audit-history-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px}
+.audit-history-meta span{display:grid;gap:4px;font-size:.72rem;overflow-wrap:anywhere}
+.audit-history-meta b{font-size:.6rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.dark .audit-history-item{background:#12271f;border-color:#2a453a}
+.dark .audit-history-top{border-color:#2a453a}
+@media(max-width:760px){
+  .audit-drawer-head{display:block}
+  .audit-drawer-head .formal-badge{margin-top:10px}
+  .audit-history-meta{grid-template-columns:1fr}
+  .audit-history-top{display:grid}
+  .audit-history-top time{white-space:normal}
+}
+@media(max-width:480px){
+  .drawer{padding:24px 18px}
+  .audit-history-item{padding:12px}
+}
