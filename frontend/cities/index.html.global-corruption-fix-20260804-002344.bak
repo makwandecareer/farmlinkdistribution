@@ -1,0 +1,59 @@
+﻿<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agricultural Suppliers by City South Africa | FarmLink Distribution</title>
+<meta name="description" content="Explore FarmLink Distribution agricultural sourcing pages for major South African cities. Submit bulk procurement and supplier registration requirements nationwide.">
+<link rel="canonical" href="https://www.farmlinkdistribution.co.za/cities/">
+<link rel="stylesheet" href="seo.css">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-1Q33161CYQ"></script>
+<script>
+window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments);}
+gtag('js',new Date());
+gtag('config','G-1Q33161CYQ',{'anonymize_ip':true});
+</script>
+<link rel="stylesheet" href="/seo-live.css?v=1.0">
+</head>
+<body data-seo-name="Cities">
+<header class="topbar"><div class="container"><a class="brand" href="https://www.farmlinkdistribution.co.za/"><img src="../assets/farmlink-logo.png" alt="FarmLink Distribution"><span>FarmLink Distribution</span></a></div></header>
+<main>
+<section class="hero"><div class="container"><div class="eyebrow">South Africa</div><h1>Agricultural suppliers by city</h1><p>Browse FarmLink city pages and submit structured procurement or supplier registration requirements across South Africa.</p><div class="actions"><a class="btn primary" href="https://www.farmlinkdistribution.co.za/#portal">Register or place an order</a><a class="btn secondary" href="https://www.farmlinkdistribution.co.za/products/">Browse products</a></div></div></section>
+<section class="section"><div class="container"><h2>Major cities and commercial centres</h2><p class="lead">Availability, pricing and delivery are confirmed only after FarmLink reviews supplier capacity, specifications and route requirements.</p><div class="city-grid"><a class='city-link' href='https://www.farmlinkdistribution.co.za/cities/johannesburg/'>Johannesburg, Gauteng</a>
+<a class='city-link' href='https://www.farmlinkdistribution.co.za/cities/pretoria/'>Pretoria, Gauteng</a>
+<a class='city-link' href='https://www.farmlinkdistribution.co.za/cities/ekurhuleni/'>Ekurhuleni, Gauteng</a>
+<a class='city-link' href='https://www.farmlinkdistribution.co.za/cities/cape-town/'>Cape Town, Western Cape</a>
+<a class='city-link' href='https://www.farmlinkdistribution.co.za/cities/stellenbosch/'>Stellenbosch, Western Cape</a>
+<a class='city-link' href='https://www.farmlinkdistribution.co.za/cities/george/'>George, Western Cape</a>
+<a class='city-link' href='https://www.farmlinkdistribution.co.za/cities/durban/'>Durban, KwaZulu-Natal</a>
+<a class='city-link' href='https://www.farmlinkdistribution.co.za/cities/pietermaritzburg/'>Pietermaritzburg, KwaZulu-Natal</a>
+<a class='city-link' href='https://www.farmlinkdistribution.co.za/cities/richards-bay/'>Richards Bay, KwaZulu-Natal</a>
+<a class='city-link' href='https://www.farmlinkdistribution.co.za/cities/gqeberha/'>Gqeberha, Eastern Cape</a>
+<a class='city-link' href='https://www.farmlinkdistribution.co.za/cities/east-london/'>East London, Eastern Cape</a>
+<a class='city-link' href='https://www.farmlinkdistribution.co.za/cities/mthatha/'>Mthatha, Eastern Cape</a>
+<a class='city-link' href='https://www.farmlinkdistribution.co.za/cities/bloemfontein/'>Bloemfontein, Free State</a>
+<a class='city-link' href='https://www.farmlinkdistribution.co.za/cities/welkom/'>Welkom, Free State</a>
+<a class='city-link' href='https://www.farmlinkdistribution.co.za/cities/polokwane/'>Polokwane, Limpopo</a>
+<a class='city-link' href='https://www.farmlinkdistribution.co.za/cities/tzaneen/'>Tzaneen, Limpopo</a>
+<a class='city-link' href='https://www.farmlinkdistribution.co.za/cities/mbombela/'>Mbombela, Mpumalanga</a>
+<a class='city-link' href='https://www.farmlinkdistribution.co.za/cities/emalahleni/'>eMalahleni, Mpumalanga</a>
+<a class='city-link' href='https://www.farmlinkdistribution.co.za/cities/rustenburg/'>Rustenburg, North West</a>
+<a class='city-link' href='https://www.farmlinkdistribution.co.za/cities/mahikeng/'>Mahikeng, North West</a>
+<a class='city-link' href='https://www.farmlinkdistribution.co.za/cities/kimberley/'>Kimberley, Northern Cape</a>
+<a class='city-link' href='https://www.farmlinkdistribution.co.za/cities/upington/'>Upington, Northern Cape</a></div></div></section>
+<section class="live-marketplace-section">
+  <div class="container">
+    <div class="live-head">
+      <span>Live marketplace</span>
+      <h2>Approved supplier listings</h2>
+      <p>Public supplier information is shown only for approved records. Availability and commercial terms must still be confirmed by FarmLink.</p>
+    </div>
+    <div data-live-marketplace></div>
+  </div>
+</section>
+</main>
+<footer class="footer"><div class="container">Â© 2026 FarmLink Distribution</div></footer>
+<script src="/seo-live.js?v=1.0"></script>
+</body>
+</html>
+

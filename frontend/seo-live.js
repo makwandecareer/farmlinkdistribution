@@ -63,7 +63,7 @@
     if (locationFilter) params.set("location", locationFilter);
     if (product) params.set("product", product);
 
-    target.innerHTML = `<div class="live-marketplace-loading">Checking approved supplier recordsâ€¦</div>`;
+    target.innerHTML = `<div class="live-marketplace-loading">Checking approved supplier records…</div>`;
 
     try {
       const data = await getJson(`/marketplace/suppliers?${params.toString()}`);
