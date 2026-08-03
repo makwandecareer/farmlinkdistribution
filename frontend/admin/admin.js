@@ -161,6 +161,7 @@ window.openAdminActions=async(id,isProtected=false)=>{
   openDrawer('<div class="drawer-loading"><span></span><strong>Loading administrator actions…</strong></div>');
   try{
     const u=await api(`/admin/users/${id}`);
+    window.selectedAdministrator=u;
     const actions=[
       `<button onclick="viewAdministrator(${id})">View profile</button>`,
       `<button onclick="editAdministrator(${id})">Edit details and role</button>`,
@@ -177,15 +178,59 @@ window.openAdminActions=async(id,isProtected=false)=>{
 
 window.viewAdministrator=async id=>{
   openDrawer('<div class="drawer-loading"><span></span><strong>Loading administrator profile…</strong></div>');
-  const u=await api(`/admin/users/${id}`);
-  openDrawer(`<span class="kicker">Administrator profile</span><h2>${esc(u.full_name)}</h2>
-    <div class="detail-grid">
-      ${detail('Email',u.email)}${detail('Job title',u.job_title)}${detail('Role',u.role)}
-      ${detail('Status',u.is_active?'Active':'Suspended')}
-      ${detail('Password status',u.must_change_password?'Temporary password active':'Password changed')}
-      ${detail('Created',new Date(u.created_at).toLocaleString('en-ZA'))}
-      ${detail('Last login',u.last_login_at?new Date(u.last_login_at).toLocaleString('en-ZA'):'Never')}
-    </div>`);
+  try{
+    let u=window.selectedAdministrator;
+    if(!u||Number(u.id)!==Number(id))u=await api(`/admin/users/${id}`);
+    window.selectedAdministrator=u;
+
+    const initials=esc((u.full_name||'A').split(' ').map(x=>x[0]).slice(0,2).join(''));
+    const protectedCEO=String(u.role||'').toUpperCase()==='CEO';
+
+    openDrawer(`
+      <div class="profile-drawer-head">
+        <span class="profile-avatar">${initials}</span>
+        <div>
+          <span class="kicker">Administrator profile</span>
+          <h2>${esc(u.full_name)}</h2>
+          <p class="muted">${esc(u.job_title||'Administrator')} · ${roleBadge(u.role)}</p>
+        </div>
+      </div>
+
+      <div class="profile-status-row">
+        ${badge(u.is_active?'Approved':'Rejected')}
+        ${protectedCEO?'<span class="protected-owner">Protected CEO account</span>':''}
+      </div>
+
+      <section class="profile-section">
+        <h3>Account information</h3>
+        <div class="detail-grid">
+          ${detail('Email address',u.email)}
+          ${detail('Department role',u.role)}
+          ${detail('Account status',u.is_active?'Active':'Suspended')}
+          ${detail('Password status',u.must_change_password?'Temporary password active':'Password changed')}
+          ${detail('Created',u.created_at?new Date(u.created_at).toLocaleString('en-ZA'):'Not recorded')}
+          ${detail('Last login',u.last_login_at?new Date(u.last_login_at).toLocaleString('en-ZA'):'Never')}
+        </div>
+      </section>
+
+      <section class="profile-section">
+        <h3>Governance</h3>
+        <div class="profile-governance">
+          <div><span>Created by</span><strong>${esc(u.created_by||'System')}</strong></div>
+          <div><span>Last activity</span><strong>${esc(u.last_activity||'No activity')}</strong></div>
+          <div><span>Access level</span><strong>${protectedCEO?'Full executive control':esc(u.role||'Administrator')}</strong></div>
+        </div>
+      </section>
+
+      <div class="drawer-actions">
+        <button class="btn btn-primary" onclick="editAdministrator(${id})">Edit profile</button>
+        <button class="btn btn-secondary" onclick="resetAdministratorPassword(${id})">Reset password</button>
+        <button class="btn btn-secondary" onclick="viewAdministratorAudit(${id})">View audit history</button>
+      </div>
+    `);
+  }catch(e){
+    openDrawer(`<div class="drawer-error"><strong>Unable to load profile</strong><p>${esc(e.message||'The administrator profile could not be loaded.')}</p><button class="btn btn-secondary" onclick="closeDrawer()">Close</button></div>`);
+  }
 };
 
 window.editAdministrator=async id=>{
@@ -285,7 +330,7 @@ function openDrawer(content=null){
 }window.closeDrawer=()=>{
   $('#drawer').classList.add('hidden');
   $('#drawerBackdrop').classList.add('hidden');
-  setTimeout(()=>{$('#drawerBody').innerHTML=''},180);
+  setTimeout(()=>{$('#drawerBody').innerHTML='';window.selectedAdministrator=null},180);
 };$('#closeDrawer').onclick=closeDrawer;$('#drawerBackdrop').onclick=closeDrawer;
 function openModal(){$('#modal').classList.remove('hidden');$('#modalBackdrop').classList.remove('hidden')}window.closeModal=()=>{$('#modal').classList.add('hidden');$('#modalBackdrop').classList.add('hidden')};$('#closeModal').onclick=closeModal;$('#modalBackdrop').onclick=closeModal;
 
