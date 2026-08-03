@@ -172,3 +172,9 @@ button{white-space:nowrap}
 .protected-owner{white-space:nowrap}
 @media(max-width:1100px){.admin-controls{display:grid;grid-template-columns:1fr 1fr}.admin-controls input{grid-column:1/-1;min-width:0}}
 @media(max-width:650px){.admin-controls{grid-template-columns:1fr}.admin-controls input{grid-column:auto}.admin-controls select{width:100%;min-width:0}}
+
+/* Administrator drawer reliability patch V8.1 */
+.drawer-loading{min-height:220px;display:grid;place-items:center;align-content:center;gap:14px;color:var(--muted)}
+.drawer-loading span{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--green-700);border-radius:50%;animation:drawerSpin .8s linear infinite}
+.drawer-loading strong{font-size:.78rem}
+@keyframes drawerSpin{to{transform:rotate(360deg)}}

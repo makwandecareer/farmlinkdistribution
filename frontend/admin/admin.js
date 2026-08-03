@@ -158,6 +158,7 @@ async function loadUsers(){
 
 window.openAdminActions=async(id,isProtected=false)=>{
   if(!requireCEO())return;
+  openDrawer('<div class="drawer-loading"><span></span><strong>Loading administrator actions…</strong></div>');
   try{
     const u=await api(`/admin/users/${id}`);
     const actions=[
@@ -171,10 +172,11 @@ window.openAdminActions=async(id,isProtected=false)=>{
       actions.push(`<button class="danger" onclick="removeUser(${id})">Delete account</button>`);
     }
     openDrawer(`<span class="kicker">Access governance</span><h2>${esc(u.full_name)}</h2><p class="muted">${esc(u.job_title)} · ${esc(u.role)}</p><div class="admin-action-menu">${actions.join('')}</div>`);
-  }catch(e){toast(e.message,false)}
+  }catch(e){closeDrawer();toast(e.message||'Unable to load administrator actions.',false)}
 };
 
 window.viewAdministrator=async id=>{
+  openDrawer('<div class="drawer-loading"><span></span><strong>Loading administrator profile…</strong></div>');
   const u=await api(`/admin/users/${id}`);
   openDrawer(`<span class="kicker">Administrator profile</span><h2>${esc(u.full_name)}</h2>
     <div class="detail-grid">
@@ -276,7 +278,15 @@ window.downloadFile=async(path,name)=>{try{const r=await fetch(API+path,{headers
 function pageHead(k,t,d,a=''){return `<div class="page-head"><div><span class="kicker">${k}</span><h2>${t}</h2><p class="muted">${d}</p></div><div>${a}</div></div>`}
 function openForm(title,fields,submit){openModal();$('#modalBody').innerHTML=`<span class="kicker">FarmLink control</span><h2>${title}</h2><form id="dynamicForm" class="form-grid">${fields}<div class="form-actions full"><button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-primary">Save record</button></div></form>`;$('#dynamicForm').onsubmit=async e=>{e.preventDefault();try{await submit();toast('Record saved');closeModal()}catch(err){toast(err.message,false)}}}
 function openPasswordModal(){openModal();$('#modalBody').innerHTML=`<span class="kicker">Security required</span><h2>Change temporary password</h2><p class="muted">Your administrator account must use a private password before continuing.</p><form id="passwordForm" class="form-grid"><label class="full">Current password<input id="oldPass" type="password" required></label><label class="full">New password<input id="newPass" type="password" minlength="10" required></label><div class="form-actions full"><button class="btn btn-primary">Update password</button></div></form>`;$('#passwordForm').onsubmit=async e=>{e.preventDefault();await api('/auth/change-password',{method:'POST',body:JSON.stringify({current_password:$('#oldPass').value,new_password:$('#newPass').value})});currentUser.must_change_password=false;toast('Password updated');closeModal()}}
-function openDrawer(){$('#drawer').classList.remove('hidden');$('#drawerBackdrop').classList.remove('hidden')}window.closeDrawer=()=>{$('#drawer').classList.add('hidden');$('#drawerBackdrop').classList.add('hidden')};$('#closeDrawer').onclick=closeDrawer;$('#drawerBackdrop').onclick=closeDrawer;
+function openDrawer(content=null){
+  if(content!==null&&content!==undefined)$('#drawerBody').innerHTML=content;
+  $('#drawer').classList.remove('hidden');
+  $('#drawerBackdrop').classList.remove('hidden');
+}window.closeDrawer=()=>{
+  $('#drawer').classList.add('hidden');
+  $('#drawerBackdrop').classList.add('hidden');
+  setTimeout(()=>{$('#drawerBody').innerHTML=''},180);
+};$('#closeDrawer').onclick=closeDrawer;$('#drawerBackdrop').onclick=closeDrawer;
 function openModal(){$('#modal').classList.remove('hidden');$('#modalBackdrop').classList.remove('hidden')}window.closeModal=()=>{$('#modal').classList.add('hidden');$('#modalBackdrop').classList.add('hidden')};$('#closeModal').onclick=closeModal;$('#modalBackdrop').onclick=closeModal;
 
 // v3.0 interface controls
