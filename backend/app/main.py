@@ -94,6 +94,32 @@ def dashboard(db: Session=Depends(get_db), user: User=Depends(current_user)):
     latest=sorted(latest,key=lambda x:x["created_at"],reverse=True)[:10]
     return {"counts":counts,"latest":latest}
 
+# IMPORTANT: Keep administrator routes above the generic
+# /api/admin/{resource} route. Starlette resolves routes in declaration order;
+# otherwise "/api/admin/users" is captured as resource="users" and returns 404.
+@app.get("/api/admin/users", response_model=list[UserOut])
+def users(db:Session=Depends(get_db), user:User=Depends(current_user)): return db.scalars(select(User).order_by(User.full_name)).all()
+
+@app.post("/api/admin/users", response_model=UserOut, status_code=201)
+def create_user(data:UserCreate, db:Session=Depends(get_db), ceo:User=Depends(ceo_user)):
+    if db.scalar(select(User).where(User.email==data.email.lower())): raise HTTPException(409,"Email already exists")
+    u=User(full_name=data.full_name,email=data.email.lower(),job_title=data.job_title,password_hash=hash_password(data.temporary_password),role=data.role,must_change_password=True)
+    db.add(u); db.flush(); audit(db,ceo,"Created administrator","user",u.id,{"email":u.email}); db.commit(); db.refresh(u); return u
+
+@app.patch("/api/admin/users/{user_id}/status", response_model=UserOut)
+def user_status(user_id:int, active:bool, db:Session=Depends(get_db), ceo:User=Depends(ceo_user)):
+    u=db.get(User,user_id)
+    if not u: raise HTTPException(404,"Administrator not found")
+    if u.role==UserRole.CEO.value: raise HTTPException(400,"CEO account cannot be suspended")
+    u.is_active=active; audit(db,ceo,"Activated administrator" if active else "Suspended administrator","user",u.id); db.commit(); db.refresh(u); return u
+
+@app.delete("/api/admin/users/{user_id}", status_code=204)
+def delete_user(user_id:int, db:Session=Depends(get_db), ceo:User=Depends(ceo_user)):
+    u=db.get(User,user_id)
+    if not u: raise HTTPException(404,"Administrator not found")
+    if u.role==UserRole.CEO.value: raise HTTPException(400,"CEO account cannot be removed")
+    audit(db,ceo,"Removed administrator","user",u.id,{"email":u.email}); db.delete(u); db.commit()
+
 @app.get("/api/admin/{resource}")
 def list_records(resource: str, q: str|None=None, status: str|None=None, limit:int=Query(100,le=500), offset:int=0, db:Session=Depends(get_db), user:User=Depends(current_user)):
     model=MODEL_MAP.get(resource)
@@ -127,29 +153,6 @@ def update_record(resource:str, record_id:int, data:RecordUpdate, request:Reques
             if not assignee or not assignee.is_active: raise HTTPException(400,"Invalid assignee")
         old=getattr(rec,k,None); setattr(rec,k,v); changes[k]={"from":str(old),"to":str(v)}
     audit(db,user,"Updated record",resource[:-1],rec.id,{"reference":rec.reference,"changes":changes},request.client.host if request.client else None); db.commit(); db.refresh(rec); return serialize(rec)
-
-@app.get("/api/admin/users", response_model=list[UserOut])
-def users(db:Session=Depends(get_db), user:User=Depends(current_user)): return db.scalars(select(User).order_by(User.full_name)).all()
-
-@app.post("/api/admin/users", response_model=UserOut, status_code=201)
-def create_user(data:UserCreate, db:Session=Depends(get_db), ceo:User=Depends(ceo_user)):
-    if db.scalar(select(User).where(User.email==data.email.lower())): raise HTTPException(409,"Email already exists")
-    u=User(full_name=data.full_name,email=data.email.lower(),job_title=data.job_title,password_hash=hash_password(data.temporary_password),role=data.role,must_change_password=True)
-    db.add(u); db.flush(); audit(db,ceo,"Created administrator","user",u.id,{"email":u.email}); db.commit(); db.refresh(u); return u
-
-@app.patch("/api/admin/users/{user_id}/status", response_model=UserOut)
-def user_status(user_id:int, active:bool, db:Session=Depends(get_db), ceo:User=Depends(ceo_user)):
-    u=db.get(User,user_id)
-    if not u: raise HTTPException(404,"Administrator not found")
-    if u.role==UserRole.CEO.value: raise HTTPException(400,"CEO account cannot be suspended")
-    u.is_active=active; audit(db,ceo,"Activated administrator" if active else "Suspended administrator","user",u.id); db.commit(); db.refresh(u); return u
-
-@app.delete("/api/admin/users/{user_id}", status_code=204)
-def delete_user(user_id:int, db:Session=Depends(get_db), ceo:User=Depends(ceo_user)):
-    u=db.get(User,user_id)
-    if not u: raise HTTPException(404,"Administrator not found")
-    if u.role==UserRole.CEO.value: raise HTTPException(400,"CEO account cannot be removed")
-    audit(db,ceo,"Removed administrator","user",u.id,{"email":u.email}); db.delete(u); db.commit()
 
 @app.get("/api/admin/audit")
 def audit_logs(limit:int=Query(100,le=500), db:Session=Depends(get_db), user:User=Depends(current_user)):
