@@ -154,3 +154,21 @@ button{white-space:nowrap}
 .admin-action-menu button.danger{color:var(--danger);border-color:#efcdcd;background:#fffafa}
 .dark .admin-action-menu button,.dark .icon-action{background:#12271f;border-color:#2a453a;color:#e9f3ee}
 @media(max-width:720px){.admin-action-cell{justify-content:flex-start}.compact{display:none}}
+
+
+/* FarmLink Administrator Management Final V8 */
+.admin-controls{margin:0 0 14px;padding:12px 14px;background:var(--surface);border:1px solid var(--line);border-radius:13px}
+.admin-controls input{min-width:330px;flex:1}
+.admin-controls select{min-width:170px}
+.role-badge{display:inline-flex;align-items:center;gap:7px;margin-top:5px;padding:5px 9px;border-radius:999px;font-size:.66rem;font-weight:900;border:1px solid transparent;white-space:nowrap}
+.role-badge i{width:7px;height:7px;border-radius:50%;background:currentColor}
+.role-ceo{color:#815d0e;background:#fff6d9;border-color:#ead498}
+.role-finance{color:#175f91;background:#e7f2fa;border-color:#c9e0f0}
+.role-operations{color:#9a5414;background:#fff0df;border-color:#f0d1ae}
+.role-logistics{color:#6b45a2;background:#f0eafa;border-color:#d9caed}
+.role-quality{color:#0b7350;background:#e2f5ec;border-color:#c2e8d7}
+.role-admin{color:#57655e;background:#edf1ef;border-color:#dbe2de}
+.admin-action-cell{min-width:126px}
+.protected-owner{white-space:nowrap}
+@media(max-width:1100px){.admin-controls{display:grid;grid-template-columns:1fr 1fr}.admin-controls input{grid-column:1/-1;min-width:0}}
+@media(max-width:650px){.admin-controls{grid-template-columns:1fr}.admin-controls input{grid-column:auto}.admin-controls select{width:100%;min-width:0}}

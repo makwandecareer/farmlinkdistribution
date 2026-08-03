@@ -97,8 +97,30 @@ def dashboard(db: Session=Depends(get_db), user: User=Depends(current_user)):
 # IMPORTANT: Keep administrator routes above the generic
 # /api/admin/{resource} route. Starlette resolves routes in declaration order;
 # otherwise "/api/admin/users" is captured as resource="users" and returns 404.
-@app.get("/api/admin/users", response_model=list[UserOut])
-def users(db:Session=Depends(get_db), user:User=Depends(current_user)): return db.scalars(select(User).order_by(User.full_name)).all()
+@app.get("/api/admin/users")
+def users(db:Session=Depends(get_db), user:User=Depends(current_user)):
+    rows=db.scalars(select(User).order_by(User.full_name)).all()
+    result=[]
+    for u in rows:
+        created_log=db.scalar(
+            select(AuditLog).where(
+                AuditLog.entity_type=="user",
+                AuditLog.entity_id==u.id,
+                AuditLog.action=="Created administrator"
+            ).order_by(AuditLog.created_at)
+        )
+        latest_log=db.scalar(
+            select(AuditLog).where(
+                or_(AuditLog.actor_id==u.id,
+                    ((AuditLog.entity_type=="user") & (AuditLog.entity_id==u.id)))
+            ).order_by(desc(AuditLog.created_at))
+        )
+        item={c.name:getattr(u,c.name) for c in u.__table__.columns if c.name!="password_hash"}
+        item["created_by"]=created_log.actor_name if created_log else ("System" if u.role==UserRole.CEO.value else "Not recorded")
+        item["last_activity"]=latest_log.action if latest_log else ("Signed in" if u.last_login_at else "No activity")
+        item["last_activity_at"]=latest_log.created_at if latest_log else u.last_login_at
+        result.append(item)
+    return result
 
 @app.post("/api/admin/users", response_model=UserOut, status_code=201)
 def create_user(data:UserCreate, db:Session=Depends(get_db), ceo:User=Depends(ceo_user)):
@@ -169,7 +191,25 @@ def delete_user(user_id:int, db:Session=Depends(get_db), ceo:User=Depends(ceo_us
     u=db.get(User,user_id)
     if not u: raise HTTPException(404,"Administrator not found")
     if u.role==UserRole.CEO.value: raise HTTPException(400,"CEO account cannot be removed")
-    audit(db,ceo,"Removed administrator","user",u.id,{"email":u.email}); db.delete(u); db.commit()
+
+    assigned_records=0
+    for model in MODEL_MAP.values():
+        if hasattr(model,"assigned_to_id"):
+            assigned_records += db.scalar(
+                select(func.count()).select_from(model).where(model.assigned_to_id==user_id)
+            ) or 0
+    historical_actions=db.scalar(
+        select(func.count()).select_from(AuditLog).where(AuditLog.actor_id==user_id)
+    ) or 0
+
+    if assigned_records or historical_actions:
+        raise HTTPException(
+            409,
+            "This administrator has operational or audit history and cannot be deleted. Suspend the account to preserve governance records."
+        )
+
+    audit(db,ceo,"Removed administrator","user",u.id,{"email":u.email})
+    db.delete(u); db.commit()
 
 # IMPORTANT: Keep the static audit route above the generic
 # /api/admin/{resource} route. Otherwise "/api/admin/audit" is interpreted

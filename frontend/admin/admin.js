@@ -4,6 +4,16 @@ const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=v=>String(v??'—').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const fmtMoney=v=>new Intl.NumberFormat('en-ZA',{style:'currency',currency:'ZAR'}).format(Number(v||0));
 const fmtDate=v=>v?new Date(v).toLocaleDateString('en-ZA'):'—';
+function fmtAdminDate(value){
+  if(!value)return 'Never';
+  const d=new Date(value);
+  return `${d.toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'})}<div class="ref">${d.toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit',hour12:false})} SAST</div>`;
+}
+function roleBadge(role){
+  const value=String(role||'ADMIN').toUpperCase();
+  const labels={CEO:'CEO',FINANCE:'Finance',OPERATIONS:'Operations',LOGISTICS:'Logistics',QUALITY:'Quality control',ADMIN:'Administrator'};
+  return `<span class="role-badge role-${value.toLowerCase()}"><i></i>${labels[value]||value}</span>`;
+}
 const SA_PROVINCES=['Eastern Cape','Free State','Gauteng','KwaZulu-Natal','Limpopo','Mpumalanga','North West','Northern Cape','Western Cape'];
 const provinceAliases={
   'EC':'Eastern Cape','EASTERN CAPE':'Eastern Cape',
@@ -89,27 +99,61 @@ async function loadUsers(){
       `<div class="panel"><div class="empty"><strong>CEO authorisation required</strong><p>Sign in with the CEO account to manage administrators.</p></div></div>`;
     return;
   }
+
   const users=await api('/admin/users');
   $('#users').innerHTML=
-    pageHead('Access governance','Administrator management','Create administrators, assign departmental roles and control access from one protected CEO workspace.',
+    pageHead('Access governance','Administrator management','Create administrators, assign roles and preserve accountable access from one protected CEO workspace.',
       `<button class="btn btn-primary admin-add-btn" id="addAdministratorBtn" type="button">+ Add administrator</button>`)+
     `<div class="admin-summary">
       <article><span>Total administrators</span><strong>${users.length}</strong></article>
       <article><span>Active accounts</span><strong>${users.filter(u=>u.is_active).length}</strong></article>
       <article><span>Suspended accounts</span><strong>${users.filter(u=>!u.is_active).length}</strong></article>
-      <article><span>Protected owner</span><strong>1 CEO</strong></article>
+      <article><span>Protected owner</span><strong>${users.filter(u=>String(u.role).toUpperCase()==='CEO').length} CEO</strong></article>
     </div>
-    <div class="panel table-wrap">${users.length?table(
-      ['Administrator','Department & role','Account status','Last login','Actions'],
-      users.map(u=>[
+    <div class="admin-controls toolbar">
+      <input id="administratorSearch" placeholder="Search name, email, title or role">
+      <select id="administratorRole">
+        <option value="all">All roles</option>
+        <option value="CEO">CEO</option><option value="FINANCE">Finance</option>
+        <option value="OPERATIONS">Operations</option><option value="LOGISTICS">Logistics</option>
+        <option value="QUALITY">Quality control</option><option value="ADMIN">Administrator</option>
+      </select>
+      <select id="administratorStatus">
+        <option value="all">All statuses</option><option value="active">Active</option><option value="suspended">Suspended</option>
+      </select>
+    </div>
+    <div id="administratorTable" class="panel table-wrap"></div>`;
+
+  const render=()=>{
+    const q=$('#administratorSearch').value.trim().toLowerCase();
+    const role=$('#administratorRole').value;
+    const status=$('#administratorStatus').value;
+    const filtered=users.filter(u=>{
+      const hay=`${u.full_name} ${u.email} ${u.job_title} ${u.role}`.toLowerCase();
+      return (!q||hay.includes(q)) &&
+        (role==='all'||String(u.role).toUpperCase()===role) &&
+        (status==='all'||(status==='active'&&u.is_active)||(status==='suspended'&&!u.is_active));
+    });
+
+    $('#administratorTable').innerHTML=filtered.length?table(
+      ['Administrator','Department & role','Status','Created by','Last activity','Last login','Actions'],
+      filtered.map(u=>[
         `<div class="admin-identity"><span class="admin-avatar">${esc((u.full_name||'A').split(' ').map(x=>x[0]).slice(0,2).join(''))}</span><div><strong>${esc(u.full_name)}</strong><div class="ref">${esc(u.email)}</div></div></div>`,
-        `<strong>${esc(u.job_title||'Administrator')}</strong><div class="ref">${esc(u.role)}</div>`,
+        `<strong>${esc(u.job_title||'Administrator')}</strong><div>${roleBadge(u.role)}</div>`,
         badge(u.is_active?'Approved':'Rejected'),
-        u.last_login_at?new Date(u.last_login_at).toLocaleString('en-ZA'):'Never',
-        `<div class="admin-action-cell">${String(u.role||'').toUpperCase()==='CEO'?'<span class="protected-owner">Protected CEO account</span>':'<button class="btn btn-secondary compact">Manage</button>'}<button class="icon-action" onclick="openAdminActions(${u.id},${String(u.role||'').toUpperCase()==='CEO'})" aria-label="Open administrator actions">⋮</button></div>`
+        esc(u.created_by||'Not recorded'),
+        `<strong>${esc(u.last_activity||'No activity')}</strong>${u.last_activity_at?`<div class="ref">${new Date(u.last_activity_at).toLocaleDateString('en-ZA')}</div>`:''}`,
+        fmtAdminDate(u.last_login_at),
+        `<div class="admin-action-cell">${String(u.role||'').toUpperCase()==='CEO'?'<span class="protected-owner">Protected CEO</span>':''}<button class="icon-action" onclick="openAdminActions(${u.id},${String(u.role||'').toUpperCase()==='CEO'})" aria-label="Open administrator actions">⋮</button></div>`
       ])
-    ):empty('No administrator accounts have been created.')}</div>`;
+    ):empty('No administrators match the selected search and filters.');
+  };
+
+  $('#administratorSearch').oninput=debounce(render,180);
+  $('#administratorRole').onchange=render;
+  $('#administratorStatus').onchange=render;
   $('#addAdministratorBtn').onclick=openUserModal;
+  render();
 }
 
 window.openAdminActions=async(id,isProtected=false)=>{
@@ -220,7 +264,7 @@ window.toggleUser=async(id,active)=>{
 
 window.removeUser=async id=>{
   if(!requireCEO())return;
-  if(!confirm('Permanently remove this administrator? This action cannot be undone.'))return;
+  if(!confirm('Delete this administrator permanently? Accounts with operational or audit history must be suspended instead.'))return;
   try{
     await api(`/admin/users/${id}`,{method:'DELETE'});
     toast('Administrator removed');
