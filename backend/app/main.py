@@ -30,7 +30,32 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(title=settings.app_name, version="1.0.0", lifespan=lifespan)
-app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origin_list, allow_credentials=True, allow_methods=["*"] , allow_headers=["*"])
+# Explicit production origins are merged with environment configuration.
+FARMLINK_PRODUCTION_ORIGINS = {
+    "https://www.farmlinkdistribution.co.za",
+    "https://farmlinkdistribution.co.za",
+    "https://farmlinkdistribution-1ndv.onrender.com",
+    "https://farmlinkdistribution-web.onrender.com",
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:8000",
+}
+configured_origins = {
+    str(origin).strip().rstrip("/")
+    for origin in (settings.cors_origin_list or [])
+    if str(origin).strip()
+}
+allowed_origins = sorted(FARMLINK_PRODUCTION_ORIGINS | configured_origins)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_origin_regex=r"https://farmlinkdistribution(?:-[a-z0-9]+)?\.onrender\.com",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)
 app.include_router(operations_router)
 
 @app.get("/api/health")

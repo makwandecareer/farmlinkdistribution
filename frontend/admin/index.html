@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#073827">
   <title>FarmLink Administration Centre</title>
-  <link rel="stylesheet" href="/admin/admin.css?v=9.0">
+  <link rel="stylesheet" href="/admin/admin.css?v=9.1">
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-1Q33161CYQ"></script>
 <script>
@@ -35,7 +35,7 @@
         <button class="btn btn-primary" type="submit">Sign in securely</button>
         <p id="loginError" class="error" aria-live="polite"></p>
       </form>
-      <div class="security-note"><span>â—</span> Encrypted connection Â· Authorised personnel only</div>
+      <div class="security-note"><span>&#9679;</span> Encrypted connection &middot; Authorised personnel only</div>
     </div>
   </div>
 </section>
@@ -45,43 +45,43 @@
     <div class="brand"><img src="/assets/farmlink-logo.png" alt="FarmLink"><div><strong>FarmLink</strong><span>Administration Centre</span></div></div>
     <nav id="nav" aria-label="Administration navigation">
       <p class="nav-label">Command</p>
-      <button class="active" data-view="dashboard"><span>â—«</span>Executive overview</button>
-      <button data-view="farmers"><span>â™™</span>Farmers</button>
-      <button data-view="buyers"><span>â–£</span>Business buyers</button>
-      <button data-view="orders"><span>â—Ž</span>Orders</button>
-      <button data-view="memberships"><span>â—‡</span>Memberships</button>
+      <button class="active" data-view="dashboard"><span>&#9711;</span>Executive overview</button>
+      <button data-view="farmers"><span>&#9817;</span>Farmers</button>
+      <button data-view="buyers"><span>&#9635;</span>Business buyers</button>
+      <button data-view="orders"><span>&#9678;</span>Orders</button>
+      <button data-view="memberships"><span>&#9671;</span>Memberships</button>
       <p class="nav-label">Operations</p>
       <button data-view="marketplace"><span>◆</span>Marketplace</button>
-      <button data-view="inventory"><span>â–¤</span>Inventory</button>
-      <button data-view="logistics"><span>â‡„</span>Logistics & dispatch</button>
-      <button data-view="quality"><span>âœ“</span>Quality control</button>
+      <button data-view="inventory"><span>&#9636;</span>Inventory</button>
+      <button data-view="logistics"><span>&#8644;</span>Logistics & dispatch</button>
+      <button data-view="quality"><span>&#10003;</span>Quality control</button>
       <p class="nav-label">Finance</p>
       <button data-view="finance"><span>R</span>Finance centre</button>
-      <button data-view="payments"><span>â—‰</span>Payment records</button>
+      <button data-view="payments"><span>&#9673;</span>Payment records</button>
       <p class="nav-label">Governance</p>
-      <button data-view="notifications"><span>âœ‰</span>Communications</button>
-      <button data-view="documents"><span>â–±</span>Documents</button>
-      <button data-view="users" id="usersNav"><span>â™š</span>Administrators</button>
-      <button data-view="audit"><span>â†º</span>Audit trail</button>
+      <button data-view="notifications"><span>&#9993;</span>Communications</button>
+      <button data-view="documents"><span>&#9649;</span>Documents</button>
+      <button data-view="users" id="usersNav"><span>&#9818;</span>Administrators</button>
+      <button data-view="audit"><span>&#8634;</span>Audit trail</button>
     </nav>
-    <div class="sidebar-user"><div class="avatar" id="avatar">FG</div><div><strong id="sideName"></strong><span id="sideRole"></span></div><button id="logout" title="Sign out">â†ª</button></div>
+    <div class="sidebar-user"><div class="avatar" id="avatar">FG</div><div><strong id="sideName"></strong><span id="sideRole"></span></div><button id="logout" title="Sign out">&#8618;</button></div>
   </aside>
 
   <div class="workspace">
     <header class="topbar">
       <div><span class="kicker">FarmLink Distribution</span><h1 id="pageTitle">Executive overview</h1></div>
       <div class="top-actions">
-        <button class="icon-btn top-icon" id="mobileNav" aria-label="Open navigation" title="Menu">â˜°</button>
-        <button class="global-search-trigger" id="globalSearchTrigger" title="Search (Ctrl+K)" aria-label="Open global search"><span class="search-symbol" aria-hidden="true">âŒ•</span><strong>Search</strong><kbd>Ctrl K</kbd></button>
+        <button class="icon-btn top-icon" id="mobileNav" aria-label="Open navigation" title="Menu">&#9776;</button>
+        <button class="global-search-trigger" id="globalSearchTrigger" title="Search (Ctrl+K)" aria-label="Open global search"><span class="search-symbol" aria-hidden="true">&#8981;</span><strong>Search</strong><kbd>Ctrl K</kbd></button>
         <span class="health"><i></i>Live system</span>
-        <button class="icon-btn top-icon" id="themeToggle" aria-label="Toggle dark mode" title="Theme">â—</button>
+        <button class="icon-btn top-icon" id="themeToggle" aria-label="Toggle dark mode" title="Theme">&#9680;</button>
         <div class="notification-menu">
-          <button class="icon-btn top-icon" id="notificationToggle" aria-label="Notifications" title="Notifications">â™¢<span id="notificationBadge" class="notification-badge hidden">0</span></button>
+          <button class="icon-btn top-icon" id="notificationToggle" aria-label="Notifications" title="Notifications">&#9826;<span id="notificationBadge" class="notification-badge hidden">0</span></button>
           <div id="notificationDropdown" class="notification-dropdown hidden"><div class="notification-head"><strong>Notifications</strong><button id="markNotificationsRead">Mark viewed</button></div><div id="notificationList"></div></div>
         </div>
         <button class="btn btn-secondary" id="refresh">Refresh</button>
         <div class="account-menu">
-          <button id="accountToggle" class="account-trigger" aria-expanded="false"><span class="avatar mini" id="topAvatar">FG</span><span class="account-copy"><strong id="topName">Account</strong><small id="topRole">Administrator</small></span><span class="account-chevron" aria-hidden="true">âŒ„</span></button>
+          <button id="accountToggle" class="account-trigger" aria-expanded="false"><span class="avatar mini" id="topAvatar">FG</span><span class="account-copy"><strong id="topName">Account</strong><small id="topRole">Administrator</small></span><span class="account-chevron" aria-hidden="true">&#8964;</span></button>
           <div id="accountDropdown" class="account-dropdown hidden">
             <button id="profileAction">Profile & security</button>
             <button id="accountLogout">Sign out</button>
@@ -98,12 +98,12 @@
     </main>
   </div>
 </div>
-<div id="drawerBackdrop" class="backdrop hidden"></div><aside id="drawer" class="drawer hidden"><button id="closeDrawer" class="icon-btn">Ã—</button><div id="drawerBody"></div></aside>
-<div id="modalBackdrop" class="backdrop hidden"></div><section id="modal" class="modal hidden"><button id="closeModal" class="icon-btn">Ã—</button><div id="modalBody"></div></section>
+<div id="drawerBackdrop" class="backdrop hidden"></div><aside id="drawer" class="drawer hidden"><button id="closeDrawer" class="icon-btn">&times;</button><div id="drawerBody"></div></aside>
+<div id="modalBackdrop" class="backdrop hidden"></div><section id="modal" class="modal hidden"><button id="closeModal" class="icon-btn">&times;</button><div id="modalBody"></div></section>
 <div id="mobileBackdrop" class="mobile-backdrop hidden"></div>
-<div id="globalSearch" class="search-overlay hidden"><div class="search-dialog"><div class="search-box"><span>âŒ•</span><input id="globalSearchInput" placeholder="Search farmers, buyers, orders, memberships..." autocomplete="off"><kbd>Esc</kbd></div><div id="globalSearchResults" class="search-results"><div class="search-hint">Start typing to search the entire FarmLink platform.</div></div></div></div>
+<div id="globalSearch" class="search-overlay hidden"><div class="search-dialog"><div class="search-box"><span>&#8981;</span><input id="globalSearchInput" placeholder="Search farmers, buyers, orders, memberships..." autocomplete="off"><kbd>Esc</kbd></div><div id="globalSearchResults" class="search-results"><div class="search-hint">Start typing to search the entire FarmLink platform.</div></div></div></div>
 <div id="toast" class="toast" role="status"></div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-<script src="/admin/admin.js?v=9.0"></script>
+<script src="/admin/admin.js?v=9.1"></script>
 </body></html>
 
