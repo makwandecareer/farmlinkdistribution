@@ -1,16 +1,16 @@
-const API=(()=>{const c=window.FARMLINK_API_URL?.trim();if(c)return c.replace(/\/$/,'')+'/api';if(['localhost','127.0.0.1'].includes(location.hostname))return'http://localhost:8000/api';return'https://farmlinkdistribution-api.onrender.com/api'})();
+﻿const API=(()=>{const c=window.FARMLINK_API_URL?.trim();if(c)return c.replace(/\/$/,'')+'/api';if(['localhost','127.0.0.1'].includes(location.hostname))return'http://localhost:8000/api';return'https://farmlinkdistribution.onrender.com/api'})();
 let token=localStorage.getItem('farmlink_token')||'',currentUser=null;
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
-const esc=v=>String(v??'—').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+const esc=v=>String(v??'â€”').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const fmtMoney=v=>new Intl.NumberFormat('en-ZA',{style:'currency',currency:'ZAR'}).format(Number(v||0));
-const fmtDate=v=>v?new Date(v).toLocaleDateString('en-ZA'):'—';
+const fmtDate=v=>v?new Date(v).toLocaleDateString('en-ZA'):'â€”';
 function fmtAdminDate(value){
   if(!value)return 'Never';
   const d=new Date(value);
   return `${d.toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'})}<div class="ref">${d.toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit',hour12:false})} SAST</div>`;
 }
 function profileDetail(label,value){
-  return `<div class="detail"><span>${esc(label)}</span><strong>${value===null||value===undefined||value===''?'—':value}</strong></div>`;
+  return `<div class="detail"><span>${esc(label)}</span><strong>${value===null||value===undefined||value===''?'â€”':value}</strong></div>`;
 }
 function roleBadge(role){
   const value=String(role||'ADMIN').toUpperCase();
@@ -61,15 +61,15 @@ async function api(path,opts={}){const r=await fetch(API+path,{...opts,headers:{
 function logout(){localStorage.removeItem('farmlink_token');token='';currentUser=null;$('#app').classList.add('hidden');$('#loginScreen').classList.remove('hidden')}
 $('#logout').onclick=logout;
 $('#loginForm').onsubmit=async e=>{e.preventDefault();$('#loginError').textContent='';try{const d=await api('/auth/login',{method:'POST',body:JSON.stringify({email:$('#loginEmail').value,password:$('#loginPassword').value})});token=d.access_token;localStorage.setItem('farmlink_token',token);currentUser=d.user;await start()}catch(err){$('#loginError').textContent=err.message}};
-async function start(){try{currentUser=currentUser||await api('/auth/me');$('#loginScreen').classList.add('hidden');$('#app').classList.remove('hidden');$('#sideName').textContent=currentUser.full_name;$('#sideRole').textContent=currentUser.job_title;const initials=currentUser.full_name.split(' ').map(x=>x[0]).slice(0,2).join('');$('#avatar').textContent=initials;$('#topAvatar').textContent=initials;$('#topName').textContent=currentUser.full_name;$('#topRole').textContent=`${currentUser.job_title||'Administrator'} · ${String(currentUser.role||'ADMIN').toUpperCase()}`;$('#usersNav').style.display=isCEO()?'flex':'none';if(currentUser.must_change_password)setTimeout(openPasswordModal,300);await showView('dashboard')}catch(e){logout()}}
+async function start(){try{currentUser=currentUser||await api('/auth/me');$('#loginScreen').classList.add('hidden');$('#app').classList.remove('hidden');$('#sideName').textContent=currentUser.full_name;$('#sideRole').textContent=currentUser.job_title;const initials=currentUser.full_name.split(' ').map(x=>x[0]).slice(0,2).join('');$('#avatar').textContent=initials;$('#topAvatar').textContent=initials;$('#topName').textContent=currentUser.full_name;$('#topRole').textContent=`${currentUser.job_title||'Administrator'} Â· ${String(currentUser.role||'ADMIN').toUpperCase()}`;$('#usersNav').style.display=isCEO()?'flex':'none';if(currentUser.must_change_password)setTimeout(openPasswordModal,300);await showView('dashboard')}catch(e){logout()}}
 const titles={dashboard:'Executive overview',farmers:'Farmer applications',buyers:'Business buyers',orders:'Bulk orders',memberships:'Memberships & marketing',inventory:'Inventory management',logistics:'Logistics & dispatch',quality:'Quality control',finance:'Finance centre',payments:'Payment records',notifications:'Communications',documents:'Document centre',users:'Administrator management',audit:'Audit trail',marketplace:'Marketplace control'};
 $$('#nav button').forEach(b=>b.onclick=()=>showView(b.dataset.view));$('#refresh').onclick=()=>showView($('.view.active').id);
 async function showView(name){$$('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name));$$('.view').forEach(v=>v.classList.toggle('active',v.id===name));$('#pageTitle').textContent=titles[name]||name;const loaders={dashboard:loadDashboard,farmers:()=>loadResource('farmers'),buyers:()=>loadResource('buyers'),orders:()=>loadResource('orders'),memberships:()=>loadResource('memberships'),inventory:loadInventory,logistics:loadLogistics,quality:loadQuality,finance:loadFinance,payments:loadPayments,notifications:loadNotifications,documents:loadDocuments,users:loadUsers,audit:loadAudit,marketplace:loadMarketplace};try{await loaders[name]?.()}catch(e){toast(e.message,false)}}
 const badge=s=>`<span class="status ${esc(String(s).replaceAll(' ','-'))}">${esc(s)}</span>`;
-const empty=(m='No records available.',detail='New activity will appear here automatically.')=>`<div class="empty-state"><div><div class="empty-icon">✓</div><strong>${esc(m)}</strong><p>${esc(detail)}</p></div></div>`;
+const empty=(m='No records available.',detail='New activity will appear here automatically.')=>`<div class="empty-state"><div><div class="empty-icon">âœ“</div><strong>${esc(m)}</strong><p>${esc(detail)}</p></div></div>`;
 function bars(series){const max=Math.max(...series.map(x=>Number(x.value)),1);return `<div class="chart">${series.map(x=>`<div class="chart-col"><div class="chart-bar" style="height:${Math.max(4,Number(x.value)/max*180)}px" title="${esc(x.value)}"></div><span>${esc(x.label)}</span></div>`).join('')}</div>`}
-async function loadDashboard(){const [d,a]=await Promise.all([api('/admin/dashboard'),api('/admin/analytics')]);const c=d.counts;$('#dashboard').innerHTML=`<div class="command-banner"><div><span class="kicker light">Operations command</span><h2>National distribution oversight from one accountable system.</h2><p>Monitor registrations, revenue, supply, fulfilment, quality and team activity in real time.</p></div><div class="command-date"><strong>${new Intl.DateTimeFormat('en-ZA',{dateStyle:'full'}).format(new Date())}</strong><span>Gauteng headquarters · Nationwide coordination</span></div></div>
-<div class="quick-actions"><button class="quick-action" onclick="showView('farmers')"><span class="qa-icon">＋</span><span><strong>Review farmers</strong><span>Supplier approvals</span></span></button><button class="quick-action" onclick="showView('buyers')"><span class="qa-icon">▣</span><span><strong>Review buyers</strong><span>Customer onboarding</span></span></button><button class="quick-action" onclick="showView('orders')"><span class="qa-icon">◎</span><span><strong>Manage orders</strong><span>Quotes and fulfilment</span></span></button><button class="quick-action" onclick="showView('finance')"><span class="qa-icon">R</span><span><strong>Create invoice</strong><span>Finance control</span></span></button><button class="quick-action" onclick="showView('logistics')"><span class="qa-icon">⇄</span><span><strong>Schedule dispatch</strong><span>Delivery planning</span></span></button></div><div class="metrics">${[['R','Today revenue',fmtMoney(a.today_revenue),'Verified payments'],['↗','Month revenue',fmtMoney(a.month_revenue),'Current calendar month'],['●','Eggs traded',Number(a.total_trays).toLocaleString('en-ZA')+' trays','Recorded order volume'],['♙','Active farmers',a.active_farmers,'Approved suppliers'],['✓','Delivery performance',a.delivery_performance+'%','Completed dispatches']].map(([i,l,v,s])=>`<article class="metric"><span class="metric-icon">${i}</span><span class="label">${l}</span><strong>${v}</strong><small>${s}</small></article>`).join('')}</div>
+async function loadDashboard(){const [d,a]=await Promise.all([api('/admin/dashboard'),api('/admin/analytics')]);const c=d.counts;$('#dashboard').innerHTML=`<div class="command-banner"><div><span class="kicker light">Operations command</span><h2>National distribution oversight from one accountable system.</h2><p>Monitor registrations, revenue, supply, fulfilment, quality and team activity in real time.</p></div><div class="command-date"><strong>${new Intl.DateTimeFormat('en-ZA',{dateStyle:'full'}).format(new Date())}</strong><span>Gauteng headquarters Â· Nationwide coordination</span></div></div>
+<div class="quick-actions"><button class="quick-action" onclick="showView('farmers')"><span class="qa-icon">ï¼‹</span><span><strong>Review farmers</strong><span>Supplier approvals</span></span></button><button class="quick-action" onclick="showView('buyers')"><span class="qa-icon">â–£</span><span><strong>Review buyers</strong><span>Customer onboarding</span></span></button><button class="quick-action" onclick="showView('orders')"><span class="qa-icon">â—Ž</span><span><strong>Manage orders</strong><span>Quotes and fulfilment</span></span></button><button class="quick-action" onclick="showView('finance')"><span class="qa-icon">R</span><span><strong>Create invoice</strong><span>Finance control</span></span></button><button class="quick-action" onclick="showView('logistics')"><span class="qa-icon">â‡„</span><span><strong>Schedule dispatch</strong><span>Delivery planning</span></span></button></div><div class="metrics">${[['R','Today revenue',fmtMoney(a.today_revenue),'Verified payments'],['â†—','Month revenue',fmtMoney(a.month_revenue),'Current calendar month'],['â—','Eggs traded',Number(a.total_trays).toLocaleString('en-ZA')+' trays','Recorded order volume'],['â™™','Active farmers',a.active_farmers,'Approved suppliers'],['âœ“','Delivery performance',a.delivery_performance+'%','Completed dispatches']].map(([i,l,v,s])=>`<article class="metric"><span class="metric-icon">${i}</span><span class="label">${l}</span><strong>${v}</strong><small>${s}</small></article>`).join('')}</div>
 <div class="grid-2"><article class="panel"><div class="panel-head"><div><span class="kicker">Commercial performance</span><h3>Revenue trend</h3></div></div>${bars(a.revenue_series)}</article><article class="panel"><div class="panel-head"><div><span class="kicker">Buyer activity</span><h3>Top customers</h3></div></div><div class="rank-list">${a.top_buyers.length?a.top_buyers.map((x,i)=>`<div class="rank-item"><span class="rank-num">${i+1}</span><strong>${esc(x.name)}</strong><span>${x.orders} orders</span></div>`).join(''):empty()}</div></article></div>
 <div class="grid-2" style="margin-top:18px"><article class="panel"><div class="panel-head"><div><span class="kicker">Order pipeline</span><h3>Latest submissions</h3></div></div>${d.latest.length?d.latest.map(x=>`<div class="list-item"><div><strong>${esc(nameOf(x))}</strong><div class="ref">${esc(x.reference)}</div></div><span>${esc(labelOf(x.type))}</span>${badge(x.status)}<button class="link-btn" onclick="openRecord('${plural(x.type)}',${x.id})">Review</button></div>`).join(''):empty()}</article><article class="panel"><div class="panel-head"><div><span class="kicker">Supplier strength</span><h3>Top capacity</h3></div></div><div class="rank-list">${a.top_suppliers.length?a.top_suppliers.map((x,i)=>`<div class="rank-item"><span class="rank-num">${i+1}</span><strong>${esc(x.name)}</strong><span>${Number(x.capacity).toLocaleString()} trays/wk</span></div>`).join(''):empty()}</div></article></div>`}
 const plural=t=>t==='membership'?'memberships':t+'s',labelOf=t=>({farmer:'Farmer',buyer:'Buyer',order:'Order',membership:'Membership'})[t]||t,nameOf=r=>r.farm_name||r.business_name||r.payer_name||r.full_name||'Record';
@@ -80,7 +80,7 @@ async function loadResource(resource){const cfg=configs[resource],v=$('#'+resour
 const table=(cols,rows)=>`<table class="table"><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
 function debounce(fn,ms){let t;return()=>{clearTimeout(t);t=setTimeout(fn,ms)}}
 window.openRecord=async(resource,id)=>{const [r,users]=await Promise.all([api(`/admin/${resource}/${id}`),api('/admin/users')]);const excluded=['id','assigned_to_id','internal_notes','created_at','updated_at','assigned_to'];const fields=Object.entries(r).filter(([k])=>!excluded.includes(k));if(!fields.some(([k])=>k==='province'))fields.splice(2,0,['province',provinceOf(r)]);$('#drawerBody').innerHTML=`<span class="kicker">${esc(resource.slice(0,-1))} record</span><h2>${esc(nameOf(r))}</h2><p class="ref">${esc(r.reference)}</p><div class="detail-grid">${fields.map(([k,v])=>`<div class="detail"><span>${esc(k.replaceAll('_',' '))}</span><strong>${esc(v)}</strong></div>`).join('')}</div><form id="recordForm"><div class="form-grid"><label>Status<select id="recordStatus">${['Pending','Approved','In progress','Completed','Rejected','Cancelled'].map(s=>`<option ${r.status===s?'selected':''}>${s}</option>`).join('')}</select></label><label>Assigned administrator<select id="recordOwner"><option value="">Unassigned</option>${users.filter(u=>u.is_active).map(u=>`<option value="${u.id}" ${r.assigned_to_id===u.id?'selected':''}>${esc(u.full_name)}</option>`).join('')}</select></label>${resource==='orders'?`<label>Quoted amount (R)<input id="quotedAmount" type="number" step="0.01" min="0" value="${r.quoted_amount||''}"></label>`:''}<label class="full">Internal notes<textarea id="internalNotes" rows="5">${esc(r.internal_notes||'')}</textarea></label></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="closeDrawer()">Cancel</button><button class="btn btn-primary">Save changes</button></div></form>`;openDrawer();$('#recordForm').onsubmit=async e=>{e.preventDefault();const payload={status:$('#recordStatus').value,assigned_to_id:$('#recordOwner').value?Number($('#recordOwner').value):null,internal_notes:$('#internalNotes').value};if(resource==='orders')payload.quoted_amount=$('#quotedAmount').value?Number($('#quotedAmount').value):null;await api(`/admin/${resource}/${id}`,{method:'PATCH',body:JSON.stringify(payload)});toast('Record updated');closeDrawer();loadResource(resource)}};
-async function loadInventory(){const rows=await api('/admin/inventory');$('#inventory').innerHTML=pageHead('Supply control','Inventory management','Track egg availability by farmer, size, packaging and expiry.',`<button class="btn btn-primary" onclick="openInventoryModal()">Add inventory lot</button>`)+`<div class="panel table-wrap">${rows.length?table(['Reference','Farmer','Egg size','Packaging','Available','Price','Status'],rows.map(r=>[esc(r.reference),esc(r.farmer_name),esc(r.egg_size),esc(r.packaging),`${r.trays_available} trays`,r.unit_price?fmtMoney(r.unit_price):'—',badge(r.status)])):empty()}</div>`}
+async function loadInventory(){const rows=await api('/admin/inventory');$('#inventory').innerHTML=pageHead('Supply control','Inventory management','Track egg availability by farmer, size, packaging and expiry.',`<button class="btn btn-primary" onclick="openInventoryModal()">Add inventory lot</button>`)+`<div class="panel table-wrap">${rows.length?table(['Reference','Farmer','Egg size','Packaging','Available','Price','Status'],rows.map(r=>[esc(r.reference),esc(r.farmer_name),esc(r.egg_size),esc(r.packaging),`${r.trays_available} trays`,r.unit_price?fmtMoney(r.unit_price):'â€”',badge(r.status)])):empty()}</div>`}
 window.openInventoryModal=async()=>{const farmers=(await api('/admin/farmers?status=Approved')).items;openForm('Add inventory lot',`<label>Farmer<select id="iFarmer" required>${farmers.map(x=>`<option value="${x.id}">${esc(x.farm_name)}</option>`).join('')}</select></label><label>Egg size<input id="iSize" required></label><label>Packaging<input id="iPack" required></label><label>Trays available<input id="iTrays" type="number" min="0" required></label><label>Unit price (R)<input id="iPrice" type="number" min="0" step=".01"></label><label>Status<select id="iStatus"><option>Available</option><option>Reserved</option><option>Sold</option><option>Expired</option></select></label>`,async()=>{await api('/admin/inventory',{method:'POST',body:JSON.stringify({farmer_id:+$('#iFarmer').value,egg_size:$('#iSize').value,packaging:$('#iPack').value,trays_available:+$('#iTrays').value,unit_price:$('#iPrice').value?+$('#iPrice').value:null,status:$('#iStatus').value})});loadInventory()})}
 
 async function loadMarketplace(){
@@ -100,10 +100,10 @@ async function loadMarketplace(){
   )+
   `<div class="metrics marketplace-metrics">
     ${[
-      ['♙','Approved suppliers',overview.approved_suppliers,'Eligible for public listings'],
-      ['▣','Active inventory lots',overview.active_inventory_lots,'Currently marked available'],
-      ['●','Available trays',Number(overview.available_trays).toLocaleString('en-ZA'),'Public stock quantity'],
-      ['◎','Marketplace quotes',overview.marketplace_quotes,'Buyer quotation requests'],
+      ['â™™','Approved suppliers',overview.approved_suppliers,'Eligible for public listings'],
+      ['â–£','Active inventory lots',overview.active_inventory_lots,'Currently marked available'],
+      ['â—','Available trays',Number(overview.available_trays).toLocaleString('en-ZA'),'Public stock quantity'],
+      ['â—Ž','Marketplace quotes',overview.marketplace_quotes,'Buyer quotation requests'],
       ['R','Quoted value',fmtMoney(overview.quoted_value),'Recorded quotation value']
     ].map(([i,l,v,s])=>`<article class="metric"><span class="metric-icon">${i}</span><span class="label">${l}</span><strong>${v}</strong><small>${s}</small></article>`).join('')}
   </div>
@@ -168,7 +168,7 @@ window.openMarketplaceInventoryModal=async(id=null)=>{
   openForm(
     existing?'Edit public inventory':'Add public inventory',
     `<label>Approved supplier<select id="miFarmer" required ${existing?'disabled':''}>
-      ${farmers.map(x=>`<option value="${x.id}" ${(existing?.farmer_id===x.id)?'selected':''}>${esc(x.farm_name)} · ${esc(x.location)}</option>`).join('')}
+      ${farmers.map(x=>`<option value="${x.id}" ${(existing?.farmer_id===x.id)?'selected':''}>${esc(x.farm_name)} Â· ${esc(x.location)}</option>`).join('')}
     </select></label>
     <label>Product / egg size<input id="miSize" required value="${esc(existing?.egg_size||'')}"></label>
     <label>Packaging<input id="miPack" required value="${esc(existing?.packaging||'')}"></label>
@@ -261,7 +261,7 @@ window.openMarketplaceQuote=async id=>{
 
 async function loadLogistics(){const [d,v]=await Promise.all([api('/admin/dispatches'),api('/admin/vehicles')]);$('#logistics').innerHTML=pageHead('National fulfilment','Logistics & dispatch','Schedule collections, assign vehicles and monitor delivery status.',`<button class="btn btn-secondary" onclick="openVehicleModal()">Add vehicle</button> <button class="btn btn-primary" onclick="openDispatchModal()">Schedule dispatch</button>`)+`<div class="grid-2"><div class="panel table-wrap">${d.length?table(['Dispatch','Order','Vehicle','Date','Trays','Status'],d.map(x=>[esc(x.reference),esc(x.order_reference),esc(x.vehicle_registration||x.driver_name),fmtDate(x.scheduled_date),x.trays,badge(x.status)])):empty('No dispatches scheduled.')}</div><div class="panel table-wrap">${v.length?table(['Registration','Type','Capacity','Driver','Status'],v.map(x=>[esc(x.registration),esc(x.vehicle_type),`${x.capacity_trays} trays`,esc(x.driver_name),badge(x.status)])):empty('No vehicles registered.')}</div></div>`}
 window.openVehicleModal=()=>openForm('Add vehicle',`<label>Registration<input id="vReg" required></label><label>Vehicle type<input id="vType" required></label><label>Capacity (trays)<input id="vCap" type="number" min="0" required></label><label>Driver name<input id="vDriver"></label><label>Driver phone<input id="vPhone"></label><label>Status<select id="vStatus"><option>Available</option><option>In service</option><option>Maintenance</option></select></label>`,async()=>{await api('/admin/vehicles',{method:'POST',body:JSON.stringify({registration:$('#vReg').value,vehicle_type:$('#vType').value,capacity_trays:+$('#vCap').value,driver_name:$('#vDriver').value||null,driver_phone:$('#vPhone').value||null,status:$('#vStatus').value})});loadLogistics()});
-window.openDispatchModal=async()=>{const [orders,vehicles]=await Promise.all([api('/admin/orders?status=Approved'),api('/admin/vehicles')]);openForm('Schedule dispatch',`<label>Order<select id="dOrder" required>${orders.items.map(x=>`<option value="${x.id}">${esc(x.reference)} · ${esc(x.business_name)}</option>`).join('')}</select></label><label>Vehicle<select id="dVehicle"><option value="">Unassigned</option>${vehicles.map(x=>`<option value="${x.id}">${esc(x.registration)}</option>`).join('')}</select></label><label>Collection location<input id="dFrom" required></label><label>Delivery location<input id="dTo" required></label><label>Scheduled date<input id="dDate" type="datetime-local" required></label><label>Trays<input id="dTrays" type="number" min="0" required></label>`,async()=>{await api('/admin/dispatches',{method:'POST',body:JSON.stringify({order_id:+$('#dOrder').value,vehicle_id:$('#dVehicle').value?+$('#dVehicle').value:null,collection_location:$('#dFrom').value,delivery_location:$('#dTo').value,scheduled_date:new Date($('#dDate').value).toISOString(),trays:+$('#dTrays').value})});loadLogistics()})}
+window.openDispatchModal=async()=>{const [orders,vehicles]=await Promise.all([api('/admin/orders?status=Approved'),api('/admin/vehicles')]);openForm('Schedule dispatch',`<label>Order<select id="dOrder" required>${orders.items.map(x=>`<option value="${x.id}">${esc(x.reference)} Â· ${esc(x.business_name)}</option>`).join('')}</select></label><label>Vehicle<select id="dVehicle"><option value="">Unassigned</option>${vehicles.map(x=>`<option value="${x.id}">${esc(x.registration)}</option>`).join('')}</select></label><label>Collection location<input id="dFrom" required></label><label>Delivery location<input id="dTo" required></label><label>Scheduled date<input id="dDate" type="datetime-local" required></label><label>Trays<input id="dTrays" type="number" min="0" required></label>`,async()=>{await api('/admin/dispatches',{method:'POST',body:JSON.stringify({order_id:+$('#dOrder').value,vehicle_id:$('#dVehicle').value?+$('#dVehicle').value:null,collection_location:$('#dFrom').value,delivery_location:$('#dTo').value,scheduled_date:new Date($('#dDate').value).toISOString(),trays:+$('#dTrays').value})});loadLogistics()})}
 async function loadQuality(){const rows=await api('/admin/quality-cases');$('#quality').innerHTML=pageHead('Product assurance','Quality control','Record inspections, damaged stock, non-conformances and corrective action.',`<button class="btn btn-primary" onclick="openQualityModal()">Open quality case</button>`)+`<div class="panel table-wrap">${rows.length?table(['Reference','Type','Severity','Trays affected','Status','Created'],rows.map(x=>[esc(x.reference),esc(x.case_type),badge(x.severity),x.trays_affected,badge(x.status),fmtDate(x.created_at)])):empty()}</div>`}
 window.openQualityModal=()=>openForm('Open quality case',`<label>Case type<input id="qType" placeholder="Damaged stock, shell quality..." required></label><label>Severity<select id="qSeverity"><option>Low</option><option selected>Medium</option><option>High</option><option>Critical</option></select></label><label>Order ID<input id="qOrder" type="number" min="1"></label><label>Farmer ID<input id="qFarmer" type="number" min="1"></label><label>Trays affected<input id="qTrays" type="number" min="0" required></label><label class="full">Findings<textarea id="qFindings"></textarea></label>`,async()=>{await api('/admin/quality-cases',{method:'POST',body:JSON.stringify({case_type:$('#qType').value,severity:$('#qSeverity').value,order_id:$('#qOrder').value?+$('#qOrder').value:null,farmer_id:$('#qFarmer').value?+$('#qFarmer').value:null,trays_affected:+$('#qTrays').value,findings:$('#qFindings').value||null})});loadQuality()})
 async function loadFinance(){const [inv,sp,tx,rf]=await Promise.all([api('/admin/invoices'),api('/admin/supplier-payments'),api('/admin/payment-transactions'),api('/admin/refunds')]);const outstanding=inv.reduce((s,x)=>s+Math.max(0,Number(x.total_amount)-Number(x.amount_paid)),0);$('#finance').innerHTML=pageHead('Financial governance','Finance centre','Invoices, supplier settlements, Paystack transactions, balances and refunds.',`<button class="btn btn-secondary" onclick="openSupplierPaymentModal()">Supplier payment</button> <button class="btn btn-primary" onclick="openInvoiceModal()">Create invoice</button>`)+`<div class="metrics"><article class="metric"><span class="label">Outstanding invoices</span><strong>${fmtMoney(outstanding)}</strong><small>${inv.filter(x=>x.status!=='Paid').length} open documents</small></article><article class="metric"><span class="label">Paystack transactions</span><strong>${tx.length}</strong><small>Server-verified records</small></article><article class="metric"><span class="label">Supplier payments</span><strong>${sp.length}</strong><small>Farmer settlements</small></article><article class="metric"><span class="label">Refund cases</span><strong>${rf.length}</strong><small>Controlled workflow</small></article></div><div class="grid-2"><div class="panel table-wrap">${inv.length?table(['Invoice','Customer','Total','Paid','Balance','Status','PDF'],inv.map(x=>[esc(x.reference),esc(x.customer_name),fmtMoney(x.total_amount),fmtMoney(x.amount_paid),fmtMoney(Number(x.total_amount)-Number(x.amount_paid)),badge(x.status),`<button class="link-btn" onclick="downloadFile('/admin/invoices/${x.id}/pdf','${esc(x.reference)}.pdf')">Download</button>`])):empty('No invoices created.')}</div><div class="panel table-wrap">${sp.length?table(['Reference','Farmer','Amount','Method','Status'],sp.map(x=>[esc(x.reference),esc(x.farmer_name),fmtMoney(x.amount),esc(x.method),badge(x.status)])):empty('No supplier payments.')}</div></div>`}
@@ -324,7 +324,7 @@ async function loadUsers(){
         esc(u.created_by||'Not recorded'),
         `<strong>${esc(u.last_activity||'No activity')}</strong>${u.last_activity_at?`<div class="ref">${new Date(u.last_activity_at).toLocaleDateString('en-ZA')}</div>`:''}`,
         fmtAdminDate(u.last_login_at),
-        `<div class="admin-action-cell">${String(u.role||'').toUpperCase()==='CEO'?'<span class="protected-owner">Protected CEO</span>':''}<button class="icon-action" onclick="openAdminActions(${u.id},${String(u.role||'').toUpperCase()==='CEO'})" aria-label="Open administrator actions">⋮</button></div>`
+        `<div class="admin-action-cell">${String(u.role||'').toUpperCase()==='CEO'?'<span class="protected-owner">Protected CEO</span>':''}<button class="icon-action" onclick="openAdminActions(${u.id},${String(u.role||'').toUpperCase()==='CEO'})" aria-label="Open administrator actions">â‹®</button></div>`
       ])
     ):empty('No administrators match the selected search and filters.');
   };
@@ -338,7 +338,7 @@ async function loadUsers(){
 
 window.openAdminActions=async(id,isProtected=false)=>{
   if(!requireCEO())return;
-  openDrawer('<div class="drawer-loading"><span></span><strong>Loading administrator actions…</strong></div>');
+  openDrawer('<div class="drawer-loading"><span></span><strong>Loading administrator actionsâ€¦</strong></div>');
   try{
     const u=await api(`/admin/users/${id}`);
     window.selectedAdministrator=u;
@@ -352,12 +352,12 @@ window.openAdminActions=async(id,isProtected=false)=>{
       actions.push(`<button onclick="toggleUser(${id},${!u.is_active})">${u.is_active?'Suspend account':'Reactivate account'}</button>`);
       actions.push(`<button class="danger" onclick="removeUser(${id})">Delete account</button>`);
     }
-    openDrawer(`<span class="kicker">Access governance</span><h2>${esc(u.full_name)}</h2><p class="muted">${esc(u.job_title)} · ${esc(u.role)}</p><div class="admin-action-menu">${actions.join('')}</div>`);
+    openDrawer(`<span class="kicker">Access governance</span><h2>${esc(u.full_name)}</h2><p class="muted">${esc(u.job_title)} Â· ${esc(u.role)}</p><div class="admin-action-menu">${actions.join('')}</div>`);
   }catch(e){closeDrawer();toast(e.message||'Unable to load administrator actions.',false)}
 };
 
 window.viewAdministrator=async id=>{
-  openDrawer('<div class="drawer-loading"><span></span><strong>Loading administrator profile…</strong></div>');
+  openDrawer('<div class="drawer-loading"><span></span><strong>Loading administrator profileâ€¦</strong></div>');
   try{
     let u=window.selectedAdministrator;
     if(!u||Number(u.id)!==Number(id))u=await api(`/admin/users/${id}`);
@@ -372,7 +372,7 @@ window.viewAdministrator=async id=>{
         <div>
           <span class="kicker">Administrator profile</span>
           <h2>${esc(u.full_name)}</h2>
-          <p class="muted">${esc(u.job_title||'Administrator')} · ${roleBadge(u.role)}</p>
+          <p class="muted">${esc(u.job_title||'Administrator')} Â· ${roleBadge(u.role)}</p>
         </div>
       </div>
 
@@ -440,7 +440,7 @@ window.resetAdministratorPassword=id=>openForm('Reset administrator password',`
   async()=>{await api(`/admin/users/${id}/reset-password`,{method:'POST',body:JSON.stringify({temporary_password:$('#rPass').value})});toast('Temporary password created');await loadUsers();});
 
 window.viewAdministratorAudit=async id=>{
-  openDrawer('<div class="drawer-loading"><span></span><strong>Loading audit history…</strong></div>');
+  openDrawer('<div class="drawer-loading"><span></span><strong>Loading audit historyâ€¦</strong></div>');
   try{
     const rows=await api(`/admin/users/${id}/audit`);
     const content=rows.length
@@ -448,12 +448,12 @@ window.viewAdministratorAudit=async id=>{
           <article class="audit-history-item">
             <div class="audit-history-top">
               <strong>${esc(r.action||'Activity')}</strong>
-              <time>${r.created_at?new Date(r.created_at).toLocaleString('en-ZA'):'—'}</time>
+              <time>${r.created_at?new Date(r.created_at).toLocaleString('en-ZA'):'â€”'}</time>
             </div>
             <div class="audit-history-meta">
               <span><b>Actor</b>${esc(r.actor_name||'System')}</span>
-              <span><b>Entity</b>${esc(r.entity_type||'—')}${r.entity_id?' #'+r.entity_id:''}</span>
-              <span><b>IP address</b>${esc(r.ip_address||'—')}</span>
+              <span><b>Entity</b>${esc(r.entity_type||'â€”')}${r.entity_id?' #'+r.entity_id:''}</span>
+              <span><b>IP address</b>${esc(r.ip_address||'â€”')}</span>
             </div>
           </article>`).join('')}</div>`
       : `<div class="empty"><strong>No audit history</strong><p>No administrator-specific activity has been recorded yet.</p></div>`;
@@ -481,12 +481,12 @@ window.viewAdministratorAudit=async id=>{
             <article class="audit-history-item">
               <div class="audit-history-top">
                 <strong>${esc(r.action||'Activity')}</strong>
-                <time>${r.created_at?new Date(r.created_at).toLocaleString('en-ZA'):'—'}</time>
+                <time>${r.created_at?new Date(r.created_at).toLocaleString('en-ZA'):'â€”'}</time>
               </div>
               <div class="audit-history-meta">
                 <span><b>Actor</b>${esc(r.actor_name||'System')}</span>
-                <span><b>Entity</b>${esc(r.entity_type||'—')}${r.entity_id?' #'+r.entity_id:''}</span>
-                <span><b>IP address</b>${esc(r.ip_address||'—')}</span>
+                <span><b>Entity</b>${esc(r.entity_type||'â€”')}${r.entity_id?' #'+r.entity_id:''}</span>
+                <span><b>IP address</b>${esc(r.ip_address||'â€”')}</span>
               </div>
             </article>`).join('')}</div>`
         : `<div class="empty"><strong>No matching activity</strong><p>Try another search term.</p></div>`;
@@ -581,7 +581,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawer();close
 // V4 boot moved to end of file
 
 
-/* FarmLink Admin V4 — executive productivity and intelligence */
+/* FarmLink Admin V4 â€” executive productivity and intelligence */
 const ICONS={
  dashboard:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>',
  farmers:'<svg viewBox="0 0 24 24"><path d="M12 21V10"/><path d="M7 15c-3 0-4-2-4-5 3 0 5 1 6 4"/><path d="M17 12c3 0 4-2 4-5-3 0-5 1-6 4"/><path d="M8 21h8"/></svg>',
@@ -618,23 +618,23 @@ loadDashboard=async function(){
   const c=d.counts||{};
   const pendingFarmers=c.farmers?.pending||0,pendingBuyers=c.buyers?.pending||0,openOrders=c.open_orders||0;
   dashboard.innerHTML=`
-  <div class="command-banner"><div><span class="kicker light">Operations command</span><h2>National distribution oversight from one accountable system.</h2><p>Monitor registrations, revenue, supply, fulfilment, quality and team activity in real time.</p></div><div class="command-date"><strong>${new Intl.DateTimeFormat('en-ZA',{dateStyle:'full'}).format(new Date())}</strong><span>Gauteng headquarters · Nationwide coordination</span></div></div>
+  <div class="command-banner"><div><span class="kicker light">Operations command</span><h2>National distribution oversight from one accountable system.</h2><p>Monitor registrations, revenue, supply, fulfilment, quality and team activity in real time.</p></div><div class="command-date"><strong>${new Intl.DateTimeFormat('en-ZA',{dateStyle:'full'}).format(new Date())}</strong><span>Gauteng headquarters Â· Nationwide coordination</span></div></div>
   <div class="quick-actions">
     <button class="quick-action" data-jump="farmers"><b>+</b>Review farmers</button><button class="quick-action" data-jump="buyers"><b>+</b>Review buyers</button><button class="quick-action" data-jump="orders"><b>+</b>Manage orders</button><button class="quick-action" data-jump="finance"><b>R</b>Create invoice</button><button class="quick-action" data-jump="users"><b>+</b>Add administrator</button>
   </div>
   <div class="metrics">
     ${metricCard('Today revenue',fmtMoney(a.today_revenue),'Verified payments','R','emerald')}
-    ${metricCard('Month revenue',fmtMoney(a.month_revenue),'Current calendar month','↗','forest')}
-    ${metricCard('Eggs traded',Number(a.total_trays||0).toLocaleString('en-ZA')+' trays','Recorded order volume','◉','gold')}
-    ${metricCard('Active farmers',a.active_farmers||0,'Approved suppliers','♙','blue')}
-    ${metricCard('Delivery performance',(a.delivery_performance||0)+'%','Completed dispatches','⇄','teal')}
+    ${metricCard('Month revenue',fmtMoney(a.month_revenue),'Current calendar month','â†—','forest')}
+    ${metricCard('Eggs traded',Number(a.total_trays||0).toLocaleString('en-ZA')+' trays','Recorded order volume','â—‰','gold')}
+    ${metricCard('Active farmers',a.active_farmers||0,'Approved suppliers','â™™','blue')}
+    ${metricCard('Delivery performance',(a.delivery_performance||0)+'%','Completed dispatches','â‡„','teal')}
   </div>
   <div class="metrics secondary-metrics">
     ${metricCard('Pending farmers',pendingFarmers,'Awaiting approval','!')}
     ${metricCard('Pending buyers',pendingBuyers,'Awaiting approval','!')}
-    ${metricCard('Open orders',openOrders,'Current pipeline','◎')}
-    ${metricCard('Processed records',c.completed||0,'Completed workflow','✓')}
-    ${metricCard('Membership activity',c.memberships?.pending||0,'Pending applications','◇')}
+    ${metricCard('Open orders',openOrders,'Current pipeline','â—Ž')}
+    ${metricCard('Processed records',c.completed||0,'Completed workflow','âœ“')}
+    ${metricCard('Membership activity',c.memberships?.pending||0,'Pending applications','â—‡')}
   </div>
   <div class="grid-2"><article class="panel"><div class="panel-head"><div><span class="kicker">Commercial performance</span><h3>Revenue trend</h3></div><button class="link-btn" onclick="exportChart()">Export PNG</button></div><div class="chart-wrap"><canvas id="revenueChart"></canvas></div></article><article class="panel"><div class="panel-head"><div><span class="kicker">Buyer activity</span><h3>Top customers</h3></div></div><div class="rank-list">${a.top_buyers?.length?a.top_buyers.map((x,i)=>`<div class="rank-item"><span class="rank-num">${i+1}</span><strong>${esc(x.name)}</strong><span>${x.orders} orders</span></div>`).join(''):smartEmpty('No customers yet','Approved buyers and completed orders will appear here.','buyers','Review buyers')}</div></article></div>
   <div class="grid-2" style="margin-top:18px"><article class="panel"><div class="panel-head"><div><span class="kicker">Order pipeline</span><h3>Latest submissions</h3></div></div>${d.latest?.length?d.latest.map(x=>`<div class="list-item"><div><strong>${esc(nameOf(x))}</strong><div class="ref">${esc(x.reference)}</div></div><span>${esc(labelOf(x.type))}</span>${badge(x.status)}<button class="link-btn" onclick="openRecord('${plural(x.type)}',${x.id})">Review</button></div>`).join(''):smartEmpty('No submissions yet','New farmer, buyer and order registrations will appear in this queue.','farmers','Open registrations')}</article><article class="panel"><div class="panel-head"><div><span class="kicker">Supplier strength</span><h3>Top capacity</h3></div></div><div class="rank-list">${a.top_suppliers?.length?a.top_suppliers.map((x,i)=>`<div class="rank-item"><span class="rank-num">${i+1}</span><strong>${esc(x.name)}</strong><span>${Number(x.capacity).toLocaleString()} trays/wk</span></div>`).join(''):smartEmpty('No supplier rankings yet','Approve farmers to begin tracking production capacity.','farmers','Review farmers')}</div></article></div>`;
@@ -653,17 +653,17 @@ loadDashboard=async function(){
   $$('.quick-action').forEach(b=>b.onclick=()=>{const view=b.dataset.jump;showView(view);if(view==='finance')setTimeout(()=>window.openInvoiceModal?.(),350);if(view==='users'&&isCEO())setTimeout(()=>window.openUserModal?.(),350)});
   drawRevenueChart(a.revenue_series||[]);
 };
-function metricCard(label,value,sub,icon,accent='green'){return `<article class="metric metric-${accent}"><span class="metric-icon">${icon}</span><span class="label">${label}</span><strong>${value}</strong><small>${sub}</small><span class="metric-trend">● Live data</span></article>`}
+function metricCard(label,value,sub,icon,accent='green'){return `<article class="metric metric-${accent}"><span class="metric-icon">${icon}</span><span class="label">${label}</span><strong>${value}</strong><small>${sub}</small><span class="metric-trend">â— Live data</span></article>`}
 function provinceCoverage(rows){
-  return `<article class="panel province-panel"><div class="panel-head"><div><span class="kicker">National footprint</span><h3>Provincial coverage</h3></div><span class="formal-badge">South Africa · 9 Provinces</span></div><div class="province-grid">${rows.map(x=>`<div class="province-card"><strong>${esc(x.province)}</strong><span>${x.farmers} farmers</span><span>${x.buyers} buyers</span></div>`).join('')}</div></article>`;
+  return `<article class="panel province-panel"><div class="panel-head"><div><span class="kicker">National footprint</span><h3>Provincial coverage</h3></div><span class="formal-badge">South Africa Â· 9 Provinces</span></div><div class="province-grid">${rows.map(x=>`<div class="province-card"><strong>${esc(x.province)}</strong><span>${x.farmers} farmers</span><span>${x.buyers} buyers</span></div>`).join('')}</div></article>`;
 }
-function smartEmpty(title,text,view,action){return `<div class="empty-action"><div class="empty-icon">＋</div><h4>${title}</h4><p>${text}</p><button class="btn btn-secondary" onclick="showView('${view}')">${action}</button></div>`}
+function smartEmpty(title,text,view,action){return `<div class="empty-action"><div class="empty-icon">ï¼‹</div><h4>${title}</h4><p>${text}</p><button class="btn btn-secondary" onclick="showView('${view}')">${action}</button></div>`}
 function drawRevenueChart(series){
   const canvas=$('#revenueChart');if(!canvas)return;
   if(revenueChart)revenueChart.destroy();
   if(!window.Chart){canvas.replaceWith(Object.assign(document.createElement('div'),{className:'empty',textContent:'Chart library unavailable.'}));return}
   const hasData=series.some(x=>Number(x.value||0)!==0);
-  if(!hasData){canvas.parentElement.innerHTML='<div class="chart-empty"><span class="chart-empty-icon">↗</span><strong>No revenue data yet</strong><p>Verified payments will appear here automatically.</p></div>';return;}
+  if(!hasData){canvas.parentElement.innerHTML='<div class="chart-empty"><span class="chart-empty-icon">â†—</span><strong>No revenue data yet</strong><p>Verified payments will appear here automatically.</p></div>';return;}
   revenueChart=new Chart(canvas,{type:'line',data:{labels:series.map(x=>x.label),datasets:[{label:'Revenue (ZAR)',data:series.map(x=>Number(x.value||0)),borderColor:'#0d6547',backgroundColor:'rgba(13,101,71,.12)',fill:true,tension:.38,pointRadius:3,pointHoverRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtMoney(c.raw)}}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,ticks:{callback:v=>'R '+Number(v).toLocaleString('en-ZA')},grid:{color:'rgba(107,118,111,.13)'}}}}});
 }
 window.exportChart=()=>{if(!revenueChart)return toast('No chart available',false);const a=document.createElement('a');a.download='farmlink-revenue-trend.png';a.href=revenueChart.toBase64Image();a.click()};
@@ -681,10 +681,11 @@ function exportTableCSV(table){const rows=[...table.rows].map(row=>[...row.cells
 const tableObserver=new MutationObserver(()=>enhanceTables(document));tableObserver.observe(document.querySelector('main'),{subtree:true,childList:true});
 
 function setupTheme(){const saved=localStorage.getItem('farmlink_theme');if(saved==='dark')document.body.classList.add('dark');$('#themeToggle').onclick=()=>{document.body.classList.toggle('dark');localStorage.setItem('farmlink_theme',document.body.classList.contains('dark')?'dark':'light')}}
-function setupGlobalSearch(){const overlay=$('#globalSearch'),input=$('#globalSearchInput'),results=$('#globalSearchResults');const open=()=>{overlay.classList.remove('hidden');setTimeout(()=>input.focus(),20)},close=()=>overlay.classList.add('hidden');$('#globalSearchTrigger').onclick=open;overlay.onclick=e=>{if(e.target===overlay)close()};input.oninput=debounce(async()=>{const q=input.value.trim();if(q.length<2){results.innerHTML='<div class="search-hint">Enter at least two characters.</div>';return}results.innerHTML='<div class="search-hint">Searching FarmLink...</div>';try{const resources=['farmers','buyers','orders','memberships'];const responses=await Promise.all(resources.map(r=>api(`/admin/${r}?q=${encodeURIComponent(q)}&status=all`).catch(()=>({items:[]}))));const items=responses.flatMap((r,i)=>(r.items||[]).map(x=>({...x,_resource:resources[i]}))).slice(0,30);results.innerHTML=items.length?items.map(x=>`<div class="search-result" data-resource="${x._resource}" data-id="${x.id}"><div><strong>${esc(nameOf(x))}</strong><span>${esc(x.reference||'')} · ${esc(x._resource)}</span></div>${badge(x.status||'Record')}</div>`).join(''):'<div class="search-hint">No matching records.</div>';results.querySelectorAll('.search-result').forEach(row=>row.onclick=()=>{close();showView(row.dataset.resource);setTimeout(()=>openRecord(row.dataset.resource,Number(row.dataset.id)),250)})}catch(e){results.innerHTML=`<div class="search-hint">${esc(e.message)}</div>`}},280);document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();open()}if(e.key==='Escape')close()})}
-async function loadNotificationMenu(){try{const rows=await api('/admin/notifications');const recent=rows.slice(0,8),badgeEl=$('#notificationBadge');badgeEl.textContent=recent.length;badgeEl.classList.toggle('hidden',!recent.length);$('#notificationList').innerHTML=recent.length?recent.map(x=>`<div class="notification-item"><i class="notification-dot"></i><div><strong>${esc(x.subject||x.channel+' notification')}</strong><span>${esc(x.recipient)} · ${fmtDate(x.sent_at||x.created_at)}</span></div></div>`).join(''):'<div class="search-hint">No notifications.</div>'}catch{$('#notificationList').innerHTML='<div class="search-hint">Unable to load notifications.</div>'}}
+function setupGlobalSearch(){const overlay=$('#globalSearch'),input=$('#globalSearchInput'),results=$('#globalSearchResults');const open=()=>{overlay.classList.remove('hidden');setTimeout(()=>input.focus(),20)},close=()=>overlay.classList.add('hidden');$('#globalSearchTrigger').onclick=open;overlay.onclick=e=>{if(e.target===overlay)close()};input.oninput=debounce(async()=>{const q=input.value.trim();if(q.length<2){results.innerHTML='<div class="search-hint">Enter at least two characters.</div>';return}results.innerHTML='<div class="search-hint">Searching FarmLink...</div>';try{const resources=['farmers','buyers','orders','memberships'];const responses=await Promise.all(resources.map(r=>api(`/admin/${r}?q=${encodeURIComponent(q)}&status=all`).catch(()=>({items:[]}))));const items=responses.flatMap((r,i)=>(r.items||[]).map(x=>({...x,_resource:resources[i]}))).slice(0,30);results.innerHTML=items.length?items.map(x=>`<div class="search-result" data-resource="${x._resource}" data-id="${x.id}"><div><strong>${esc(nameOf(x))}</strong><span>${esc(x.reference||'')} Â· ${esc(x._resource)}</span></div>${badge(x.status||'Record')}</div>`).join(''):'<div class="search-hint">No matching records.</div>';results.querySelectorAll('.search-result').forEach(row=>row.onclick=()=>{close();showView(row.dataset.resource);setTimeout(()=>openRecord(row.dataset.resource,Number(row.dataset.id)),250)})}catch(e){results.innerHTML=`<div class="search-hint">${esc(e.message)}</div>`}},280);document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();open()}if(e.key==='Escape')close()})}
+async function loadNotificationMenu(){try{const rows=await api('/admin/notifications');const recent=rows.slice(0,8),badgeEl=$('#notificationBadge');badgeEl.textContent=recent.length;badgeEl.classList.toggle('hidden',!recent.length);$('#notificationList').innerHTML=recent.length?recent.map(x=>`<div class="notification-item"><i class="notification-dot"></i><div><strong>${esc(x.subject||x.channel+' notification')}</strong><span>${esc(x.recipient)} Â· ${fmtDate(x.sent_at||x.created_at)}</span></div></div>`).join(''):'<div class="search-hint">No notifications.</div>'}catch{$('#notificationList').innerHTML='<div class="search-hint">Unable to load notifications.</div>'}}
 function setupNotifications(){const menu=$('#notificationDropdown');$('#notificationToggle').onclick=async()=>{menu.classList.toggle('hidden');if(!menu.classList.contains('hidden'))await loadNotificationMenu()};$('#markNotificationsRead').onclick=()=>{$('#notificationBadge').classList.add('hidden');menu.classList.add('hidden')};document.addEventListener('click',e=>{if(!e.target.closest('.notification-menu'))menu.classList.add('hidden')})}
 function setupShortcuts(){document.addEventListener('keydown',e=>{if(e.target.matches('input,textarea,select'))return;if(e.key.toLowerCase()==='o')showView('orders');if(e.key.toLowerCase()==='i')showView('finance')})}
 
 installIcons();setupTheme();setupGlobalSearch();setupNotifications();setupShortcuts();
 if(token)start();
+
