@@ -127,6 +127,42 @@ def delete_user(user_id:int, db:Session=Depends(get_db), ceo:User=Depends(ceo_us
 def audit_logs(limit:int=Query(100,le=500), db:Session=Depends(get_db), user:User=Depends(current_user)):
     rows=db.scalars(select(AuditLog).order_by(desc(AuditLog.created_at)).limit(limit)).all(); return [{c.name:getattr(r,c.name) for c in r.__table__.columns} for r in rows]
 
+# IMPORTANT: Static admin routes must be declared above the generic
+# /api/admin/{resource} routes. Otherwise paths such as /api/admin/payments
+# are captured as resource="payments" and return 404.
+@app.get("/api/admin/payments")
+def payments(db:Session=Depends(get_db), user:User=Depends(current_user)):
+    rows=db.scalars(select(Payment).order_by(desc(Payment.created_at))).all(); return [{c.name:getattr(r,c.name) for c in r.__table__.columns} for r in rows]
+
+@app.post("/api/admin/payments", status_code=201)
+def create_payment(data:PaymentCreate, db:Session=Depends(get_db), user:User=Depends(current_user)):
+    p=Payment(reference=make_reference("PAY"),**data.model_dump()); db.add(p); db.flush(); audit(db,user,"Created payment record","payment",p.id,{"reference":p.reference}); db.commit(); return {c.name:getattr(p,c.name) for c in p.__table__.columns}
+
+@app.patch("/api/admin/payments/{payment_id}")
+def update_payment(payment_id:int,data:PaymentUpdate,db:Session=Depends(get_db),user:User=Depends(current_user)):
+    p=db.get(Payment,payment_id)
+    if not p: raise HTTPException(404,"Payment not found")
+    for k,v in data.model_dump(exclude_unset=True).items(): setattr(p,k,v)
+    audit(db,user,"Updated payment","payment",p.id,{"status":p.status}); db.commit(); return {c.name:getattr(p,c.name) for c in p.__table__.columns}
+
+FRONTEND = Path(__file__).resolve().parents[2] / "frontend"
+if FRONTEND.exists():
+    app.mount("/assets", StaticFiles(directory=FRONTEND / "assets"), name="assets")
+    app.mount("/admin/static", StaticFiles(directory=FRONTEND / "admin"), name="admin-static")
+    @app.get("/")
+    def home(): return FileResponse(FRONTEND / "index.html")
+    @app.get("/styles.css")
+    def styles(): return FileResponse(FRONTEND / "styles.css", media_type="text/css")
+    @app.get("/script.js")
+    def script(): return FileResponse(FRONTEND / "script.js", media_type="application/javascript")
+    @app.get("/admin")
+    @app.get("/admin/")
+    def admin_page(): return FileResponse(FRONTEND / "admin" / "index.html")
+    @app.get("/admin/admin.css")
+    def admin_css(): return FileResponse(FRONTEND / "admin" / "admin.css", media_type="text/css")
+    @app.get("/admin/admin.js")
+    def admin_js(): return FileResponse(FRONTEND / "admin" / "admin.js", media_type="application/javascript")
+
 @app.get("/api/admin/{resource}")
 def list_records(resource: str, q: str|None=None, status: str|None=None, limit:int=Query(100,le=500), offset:int=0, db:Session=Depends(get_db), user:User=Depends(current_user)):
     model=MODEL_MAP.get(resource)
@@ -161,35 +197,3 @@ def update_record(resource:str, record_id:int, data:RecordUpdate, request:Reques
         old=getattr(rec,k,None); setattr(rec,k,v); changes[k]={"from":str(old),"to":str(v)}
     audit(db,user,"Updated record",resource[:-1],rec.id,{"reference":rec.reference,"changes":changes},request.client.host if request.client else None); db.commit(); db.refresh(rec); return serialize(rec)
 
-@app.get("/api/admin/payments")
-def payments(db:Session=Depends(get_db), user:User=Depends(current_user)):
-    rows=db.scalars(select(Payment).order_by(desc(Payment.created_at))).all(); return [{c.name:getattr(r,c.name) for c in r.__table__.columns} for r in rows]
-
-@app.post("/api/admin/payments", status_code=201)
-def create_payment(data:PaymentCreate, db:Session=Depends(get_db), user:User=Depends(current_user)):
-    p=Payment(reference=make_reference("PAY"),**data.model_dump()); db.add(p); db.flush(); audit(db,user,"Created payment record","payment",p.id,{"reference":p.reference}); db.commit(); return {c.name:getattr(p,c.name) for c in p.__table__.columns}
-
-@app.patch("/api/admin/payments/{payment_id}")
-def update_payment(payment_id:int,data:PaymentUpdate,db:Session=Depends(get_db),user:User=Depends(current_user)):
-    p=db.get(Payment,payment_id)
-    if not p: raise HTTPException(404,"Payment not found")
-    for k,v in data.model_dump(exclude_unset=True).items(): setattr(p,k,v)
-    audit(db,user,"Updated payment","payment",p.id,{"status":p.status}); db.commit(); return {c.name:getattr(p,c.name) for c in p.__table__.columns}
-
-FRONTEND = Path(__file__).resolve().parents[2] / "frontend"
-if FRONTEND.exists():
-    app.mount("/assets", StaticFiles(directory=FRONTEND / "assets"), name="assets")
-    app.mount("/admin/static", StaticFiles(directory=FRONTEND / "admin"), name="admin-static")
-    @app.get("/")
-    def home(): return FileResponse(FRONTEND / "index.html")
-    @app.get("/styles.css")
-    def styles(): return FileResponse(FRONTEND / "styles.css", media_type="text/css")
-    @app.get("/script.js")
-    def script(): return FileResponse(FRONTEND / "script.js", media_type="application/javascript")
-    @app.get("/admin")
-    @app.get("/admin/")
-    def admin_page(): return FileResponse(FRONTEND / "admin" / "index.html")
-    @app.get("/admin/admin.css")
-    def admin_css(): return FileResponse(FRONTEND / "admin" / "admin.css", media_type="text/css")
-    @app.get("/admin/admin.js")
-    def admin_js(): return FileResponse(FRONTEND / "admin" / "admin.js", media_type="application/javascript")
