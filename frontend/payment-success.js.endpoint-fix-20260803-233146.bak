@@ -2,7 +2,7 @@ const API = (() => {
   const configured = window.FARMLINK_API_URL?.trim();
   if (configured) return configured.replace(/\/$/, '') + '/api';
   if (['localhost','127.0.0.1'].includes(location.hostname)) return 'http://localhost:8000/api';
-  return 'https://farmlinkdistribution.onrender.com/api';
+  return 'https://farmlinkdistribution-api.onrender.com/api';
 })();
 
 const params = new URLSearchParams(location.search);

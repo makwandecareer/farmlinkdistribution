@@ -1,5 +1,5 @@
-(() => {
-  const API = (window.FARMLINK_API_URL || "https://farmlinkdistribution.onrender.com").replace(/\/$/, "") + "/api";
+﻿(() => {
+  const API = (window.FARMLINK_API_URL || "https://farmlinkdistribution-api.onrender.com").replace(/\/$/, "") + "/api";
 
   const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
