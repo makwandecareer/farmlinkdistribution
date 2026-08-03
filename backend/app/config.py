@@ -15,7 +15,6 @@ class Settings(BaseSettings):
     paystack_public_key: str = ""
     paystack_secret_key: str = ""
     paystack_callback_url: str = ""
-    paystack_channels: str = "card,bank,bank_transfer,eft,capitec_pay"
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_username: str = ""

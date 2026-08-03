@@ -163,6 +163,77 @@ if FRONTEND.exists():
     @app.get("/admin/admin.js")
     def admin_js(): return FileResponse(FRONTEND / "admin" / "admin.js", media_type="application/javascript")
 
+
+@app.get("/api/admin/payments/{payment_id}")
+def payment_detail(payment_id:int, db:Session=Depends(get_db), user:User=Depends(current_user)):
+    p=db.get(Payment,payment_id)
+    if not p: raise HTTPException(404,"Payment not found")
+    result={c.name:getattr(p,c.name) for c in p.__table__.columns}
+    result["receipt_url"]=(
+        f"/api/payments/receipt/{p.external_reference}"
+        if p.status=="Paid" and p.external_reference and p.external_reference.startswith("PSTK-")
+        else None
+    )
+    return result
+
+@app.get("/api/admin/executive-summary")
+def executive_summary(db:Session=Depends(get_db), user:User=Depends(current_user)):
+    provinces=[
+        "Eastern Cape","Free State","Gauteng","KwaZulu-Natal","Limpopo",
+        "Mpumalanga","North West","Northern Cape","Western Cape"
+    ]
+    aliases={
+        "EC":"Eastern Cape","FS":"Free State","GP":"Gauteng","KZN":"KwaZulu-Natal",
+        "LP":"Limpopo","MP":"Mpumalanga","NW":"North West","NC":"Northern Cape","WC":"Western Cape"
+    }
+    def province_of(value):
+        raw=(value or "").strip()
+        upper=raw.upper().replace("."," ")
+        for code,name in aliases.items():
+            if upper==code or f" {code} " in f" {upper} ": return name
+        for name in provinces:
+            if name.upper() in upper: return name
+        return "Not specified"
+
+    farmers=db.scalars(select(Farmer)).all()
+    buyers=db.scalars(select(Buyer)).all()
+    orders=db.scalars(select(Order)).all()
+    payments=db.scalars(select(Payment).where(Payment.status=="Paid")).all()
+    memberships=db.scalars(select(MembershipApplication)).all()
+
+    result=[]
+    for province in provinces:
+        pf=[x for x in farmers if province_of(x.location)==province]
+        pb=[x for x in buyers if province_of(x.location)==province]
+        po=[x for x in orders if province_of(x.delivery_area)==province]
+        entity_ids={x.id for x in po}
+        revenue=sum(
+            float(x.amount or 0) for x in payments
+            if x.entity_type=="order" and x.entity_id in entity_ids
+        )
+        result.append({
+            "province":province,
+            "farmers":len(pf),
+            "approved_farmers":sum(1 for x in pf if x.status=="Approved"),
+            "buyers":len(pb),
+            "approved_buyers":sum(1 for x in pb if x.status=="Approved"),
+            "orders":len(po),
+            "revenue":round(revenue,2),
+        })
+
+    paid_total=sum(float(x.amount or 0) for x in payments)
+    return {
+        "provinces":result,
+        "national":{
+            "farmers":len(farmers),
+            "buyers":len(buyers),
+            "orders":len(orders),
+            "memberships":len(memberships),
+            "paid_revenue":round(paid_total,2),
+            "pending_approvals":sum(1 for x in farmers+buyers+memberships if x.status=="Pending"),
+        }
+    }
+
 @app.get("/api/admin/{resource}")
 def list_records(resource: str, q: str|None=None, status: str|None=None, limit:int=Query(100,le=500), offset:int=0, db:Session=Depends(get_db), user:User=Depends(current_user)):
     model=MODEL_MAP.get(resource)

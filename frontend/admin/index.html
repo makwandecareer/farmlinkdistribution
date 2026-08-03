@@ -1,9 +1,97 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#073827"><title>FarmLink Administration</title><link rel="stylesheet" href="admin.css"></head><body>
-<section id="loginScreen" class="login-screen"><div class="login-card"><img src="/assets/farmlink-logo.png" alt="FarmLink"><span class="eyebrow">Secure operations portal</span><h1>Administration Centre</h1><p>Authorised FarmLink personnel only.</p><form id="loginForm"><label>Email<input id="loginEmail" type="email" required autocomplete="username"></label><label>Password<input id="loginPassword" type="password" minlength="8" required autocomplete="current-password"></label><button>Sign in securely</button><p id="loginError" class="error"></p></form></div></section>
-<div id="app" class="app hidden"><aside class="sidebar"><div class="side-brand"><img src="/assets/farmlink-logo.png" alt="FarmLink"><small>Administration Centre</small></div><nav id="nav"><button class="active" data-view="dashboard">Overview</button><button data-view="farmers">Farmers</button><button data-view="buyers">Business buyers</button><button data-view="orders">Orders</button><button data-view="memberships">Memberships</button><button data-view="payments">Payments</button><button data-view="users" id="usersNav">Administrators</button><button data-view="audit">Audit trail</button></nav><div class="side-user"><strong id="sideName"></strong><span id="sideRole"></span><button id="logout">Sign out</button></div></aside>
-<main><header><div><span class="eyebrow">FarmLink Distribution</span><h1 id="pageTitle">Operations overview</h1></div><div class="header-actions"><span class="secure">● Secure connection</span><button id="refresh">Refresh</button></div></header>
-<section id="dashboard" class="view active"><div class="hero"><div><span>Operations command</span><h2>Manage registrations, orders and payments from one verified system.</h2><p>All records are stored in the central database with role-based access and a permanent audit trail.</p></div><div><strong id="today"></strong><small>Gauteng headquarters · Nationwide coordination</small></div></div><div id="stats" class="stats"></div><div class="panel"><div class="panel-head"><div><span class="eyebrow">Priority queue</span><h3>Latest submissions</h3></div></div><div id="latest"></div></div></section>
-<section id="farmers" class="view"></section><section id="buyers" class="view"></section><section id="orders" class="view"></section><section id="memberships" class="view"></section><section id="payments" class="view"></section><section id="users" class="view"></section><section id="audit" class="view"></section>
-</main></div>
-<div id="drawerBackdrop" class="backdrop hidden"></div><aside id="drawer" class="drawer hidden"><button id="closeDrawer" class="close">×</button><div id="drawerBody"></div></aside>
-<div id="modalBackdrop" class="backdrop hidden"></div><section id="modal" class="modal hidden"><button id="closeModal" class="close">×</button><div id="modalBody"></div></section><div id="toast" class="toast"></div><script src="admin.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#073827">
+  <title>FarmLink Administration Centre</title>
+  <link rel="stylesheet" href="/admin/admin.css?v=7.0">
+</head>
+<body>
+<section id="loginScreen" class="login-shell">
+  <div class="login-visual">
+    <div class="login-overlay"></div>
+    <div class="login-copy"><span class="kicker light">FarmLink Distribution</span><h1>Operational control with complete accountability.</h1><p>Secure administration for registrations, finance, inventory, logistics, quality and executive reporting.</p></div>
+  </div>
+  <div class="login-panel">
+    <div class="login-card">
+      <img class="login-logo" src="/assets/farmlink-logo.png" alt="FarmLink Distribution">
+      <span class="kicker">Secure operations portal</span>
+      <h2>Administration Centre</h2>
+      <p class="muted">Sign in using your authorised FarmLink account.</p>
+      <form id="loginForm" class="form-stack">
+        <label>Email address<input id="loginEmail" type="email" required autocomplete="username" placeholder="name@farmlink.co.za"></label>
+        <label>Password<input id="loginPassword" type="password" minlength="8" required autocomplete="current-password" placeholder="Enter your password"></label>
+        <button class="btn btn-primary" type="submit">Sign in securely</button>
+        <p id="loginError" class="error" aria-live="polite"></p>
+      </form>
+      <div class="security-note"><span>●</span> Encrypted connection · Authorised personnel only</div>
+    </div>
+  </div>
+</section>
+
+<div id="app" class="app hidden">
+  <aside class="sidebar">
+    <div class="brand"><img src="/assets/farmlink-logo.png" alt="FarmLink"><div><strong>FarmLink</strong><span>Administration Centre</span></div></div>
+    <nav id="nav" aria-label="Administration navigation">
+      <p class="nav-label">Command</p>
+      <button class="active" data-view="dashboard"><span>◫</span>Executive overview</button>
+      <button data-view="farmers"><span>♙</span>Farmers</button>
+      <button data-view="buyers"><span>▣</span>Business buyers</button>
+      <button data-view="orders"><span>◎</span>Orders</button>
+      <button data-view="memberships"><span>◇</span>Memberships</button>
+      <p class="nav-label">Operations</p>
+      <button data-view="inventory"><span>▤</span>Inventory</button>
+      <button data-view="logistics"><span>⇄</span>Logistics & dispatch</button>
+      <button data-view="quality"><span>✓</span>Quality control</button>
+      <p class="nav-label">Finance</p>
+      <button data-view="finance"><span>R</span>Finance centre</button>
+      <button data-view="payments"><span>◉</span>Payment records</button>
+      <p class="nav-label">Governance</p>
+      <button data-view="notifications"><span>✉</span>Communications</button>
+      <button data-view="documents"><span>▱</span>Documents</button>
+      <button data-view="users" id="usersNav"><span>♚</span>Administrators</button>
+      <button data-view="audit"><span>↺</span>Audit trail</button>
+    </nav>
+    <div class="sidebar-user"><div class="avatar" id="avatar">FG</div><div><strong id="sideName"></strong><span id="sideRole"></span></div><button id="logout" title="Sign out">↪</button></div>
+  </aside>
+
+  <div class="workspace">
+    <header class="topbar">
+      <div><span class="kicker">FarmLink Distribution</span><h1 id="pageTitle">Executive overview</h1></div>
+      <div class="top-actions">
+        <button class="icon-btn top-icon" id="mobileNav" aria-label="Open navigation" title="Menu">☰</button>
+        <button class="global-search-trigger" id="globalSearchTrigger" title="Search (Ctrl+K)" aria-label="Open global search"><span class="search-symbol" aria-hidden="true">⌕</span><strong>Search</strong><kbd>Ctrl K</kbd></button>
+        <span class="health"><i></i>Live system</span>
+        <button class="icon-btn top-icon" id="themeToggle" aria-label="Toggle dark mode" title="Theme">◐</button>
+        <div class="notification-menu">
+          <button class="icon-btn top-icon" id="notificationToggle" aria-label="Notifications" title="Notifications">♢<span id="notificationBadge" class="notification-badge hidden">0</span></button>
+          <div id="notificationDropdown" class="notification-dropdown hidden"><div class="notification-head"><strong>Notifications</strong><button id="markNotificationsRead">Mark viewed</button></div><div id="notificationList"></div></div>
+        </div>
+        <button class="btn btn-secondary" id="refresh">Refresh</button>
+        <div class="account-menu">
+          <button id="accountToggle" class="account-trigger" aria-expanded="false"><span class="avatar mini" id="topAvatar">FG</span><span class="account-copy"><strong id="topName">Account</strong><small id="topRole">Administrator</small></span><span class="account-chevron" aria-hidden="true">⌄</span></button>
+          <div id="accountDropdown" class="account-dropdown hidden">
+            <button id="profileAction">Profile & security</button>
+            <button id="accountLogout">Sign out</button>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main>
+      <section id="dashboard" class="view active"></section>
+      <section id="farmers" class="view"></section><section id="buyers" class="view"></section><section id="orders" class="view"></section><section id="memberships" class="view"></section>
+      <section id="inventory" class="view"></section><section id="logistics" class="view"></section><section id="quality" class="view"></section>
+      <section id="finance" class="view"></section><section id="payments" class="view"></section><section id="notifications" class="view"></section><section id="documents" class="view"></section>
+      <section id="users" class="view"></section><section id="audit" class="view"></section>
+    </main>
+  </div>
+</div>
+<div id="drawerBackdrop" class="backdrop hidden"></div><aside id="drawer" class="drawer hidden"><button id="closeDrawer" class="icon-btn">×</button><div id="drawerBody"></div></aside>
+<div id="modalBackdrop" class="backdrop hidden"></div><section id="modal" class="modal hidden"><button id="closeModal" class="icon-btn">×</button><div id="modalBody"></div></section>
+<div id="mobileBackdrop" class="mobile-backdrop hidden"></div>
+<div id="globalSearch" class="search-overlay hidden"><div class="search-dialog"><div class="search-box"><span>⌕</span><input id="globalSearchInput" placeholder="Search farmers, buyers, orders, memberships..." autocomplete="off"><kbd>Esc</kbd></div><div id="globalSearchResults" class="search-results"><div class="search-hint">Start typing to search the entire FarmLink platform.</div></div></div></div>
+<div id="toast" class="toast" role="status"></div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="/admin/admin.js?v=7.0"></script>
+</body></html>
