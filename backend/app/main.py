@@ -613,6 +613,319 @@ async def public_quote_request(request: Request, db: Session = Depends(get_db)):
     }
 
 
+
+# FARMLINK_MARKETPLACE_ADMIN_V9
+@app.get("/api/admin/marketplace/overview")
+def marketplace_admin_overview(
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    approved_suppliers = db.scalar(
+        select(func.count()).select_from(Farmer).where(Farmer.status == "Approved")
+    ) or 0
+    active_inventory_lots = db.scalar(
+        select(func.count()).select_from(InventoryLot).where(
+            InventoryLot.status == "Available"
+        )
+    ) or 0
+    available_trays = db.scalar(
+        select(func.coalesce(func.sum(InventoryLot.trays_available), 0)).where(
+            InventoryLot.status == "Available"
+        )
+    ) or 0
+    marketplace_quotes = db.scalar(
+        select(func.count()).select_from(Order).where(
+            Order.notes.ilike("%public marketplace quotation workflow%")
+        )
+    ) or 0
+    pending_quotes = db.scalar(
+        select(func.count()).select_from(Order).where(
+            Order.notes.ilike("%public marketplace quotation workflow%"),
+            Order.status.in_(["Pending", "In progress"]),
+        )
+    ) or 0
+    quoted_value = db.scalar(
+        select(func.coalesce(func.sum(Order.quoted_amount), 0)).where(
+            Order.notes.ilike("%public marketplace quotation workflow%"),
+            Order.quoted_amount.is_not(None),
+        )
+    ) or 0
+
+    return {
+        "approved_suppliers": approved_suppliers,
+        "active_inventory_lots": active_inventory_lots,
+        "available_trays": int(available_trays),
+        "marketplace_quotes": marketplace_quotes,
+        "pending_quotes": pending_quotes,
+        "quoted_value": float(quoted_value),
+    }
+
+
+@app.get("/api/admin/marketplace/inventory")
+def marketplace_admin_inventory(
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    rows = db.execute(
+        select(InventoryLot, Farmer)
+        .join(Farmer, Farmer.id == InventoryLot.farmer_id)
+        .order_by(desc(InventoryLot.updated_at))
+    ).all()
+
+    return [
+        {
+            "id": lot.id,
+            "reference": lot.reference,
+            "farmer_id": lot.farmer_id,
+            "farmer_name": farmer.farm_name,
+            "location": farmer.location,
+            "farmer_status": farmer.status,
+            "egg_size": lot.egg_size,
+            "packaging": lot.packaging,
+            "trays_available": lot.trays_available,
+            "unit_price": float(lot.unit_price) if lot.unit_price is not None else None,
+            "available_from": lot.available_from,
+            "expiry_date": lot.expiry_date,
+            "status": lot.status,
+            "notes": lot.notes,
+            "created_at": lot.created_at,
+            "updated_at": lot.updated_at,
+        }
+        for lot, farmer in rows
+    ]
+
+
+@app.post("/api/admin/marketplace/inventory", status_code=201)
+async def marketplace_admin_create_inventory(
+    request: Request,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    data = await request.json()
+    required = ["farmer_id", "egg_size", "packaging", "trays_available", "status"]
+    missing = [field for field in required if data.get(field) in (None, "")]
+    if missing:
+        raise HTTPException(422, f"Missing required fields: {', '.join(missing)}")
+
+    farmer = db.get(Farmer, int(data["farmer_id"]))
+    if not farmer:
+        raise HTTPException(404, "Farmer not found")
+    if farmer.status != "Approved":
+        raise HTTPException(400, "Only approved farmers can receive public inventory")
+
+    lot = InventoryLot(
+        reference=make_reference("INV"),
+        farmer_id=farmer.id,
+        egg_size=str(data["egg_size"]).strip(),
+        packaging=str(data["packaging"]).strip(),
+        trays_available=max(0, int(data["trays_available"])),
+        unit_price=(
+            float(data["unit_price"])
+            if data.get("unit_price") not in (None, "")
+            else None
+        ),
+        available_from=(
+            datetime.strptime(str(data["available_from"]), "%Y-%m-%d").date()
+            if data.get("available_from")
+            else datetime.utcnow().date()
+        ),
+        expiry_date=(
+            datetime.strptime(str(data["expiry_date"]), "%Y-%m-%d").date()
+            if data.get("expiry_date")
+            else None
+        ),
+        status=str(data["status"]).strip(),
+        notes=str(data.get("notes", "")).strip() or None,
+    )
+    db.add(lot)
+    db.flush()
+    audit(
+        db,
+        user,
+        "Created marketplace inventory",
+        "inventory",
+        lot.id,
+        {
+            "reference": lot.reference,
+            "farmer_reference": farmer.reference,
+            "trays_available": lot.trays_available,
+            "status": lot.status,
+        },
+        request.client.host if request.client else None,
+    )
+    db.commit()
+    db.refresh(lot)
+    return {"id": lot.id, "reference": lot.reference, "status": lot.status}
+
+
+@app.patch("/api/admin/marketplace/inventory/{inventory_id}")
+async def marketplace_admin_update_inventory(
+    inventory_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    lot = db.get(InventoryLot, inventory_id)
+    if not lot:
+        raise HTTPException(404, "Inventory lot not found")
+
+    data = await request.json()
+    before = {
+        "egg_size": lot.egg_size,
+        "packaging": lot.packaging,
+        "trays_available": lot.trays_available,
+        "unit_price": float(lot.unit_price) if lot.unit_price is not None else None,
+        "status": lot.status,
+    }
+
+    for field in ["egg_size", "packaging", "status", "notes"]:
+        if field in data:
+            value = str(data[field]).strip()
+            setattr(lot, field, value or None if field == "notes" else value)
+
+    if "trays_available" in data:
+        lot.trays_available = max(0, int(data["trays_available"]))
+    if "unit_price" in data:
+        lot.unit_price = (
+            float(data["unit_price"])
+            if data["unit_price"] not in (None, "")
+            else None
+        )
+    if "available_from" in data and data["available_from"]:
+        lot.available_from = datetime.strptime(
+            str(data["available_from"]), "%Y-%m-%d"
+        ).date()
+    if "expiry_date" in data:
+        lot.expiry_date = (
+            datetime.strptime(str(data["expiry_date"]), "%Y-%m-%d").date()
+            if data["expiry_date"]
+            else None
+        )
+
+    after = {
+        "egg_size": lot.egg_size,
+        "packaging": lot.packaging,
+        "trays_available": lot.trays_available,
+        "unit_price": float(lot.unit_price) if lot.unit_price is not None else None,
+        "status": lot.status,
+    }
+    audit(
+        db,
+        user,
+        "Updated marketplace inventory",
+        "inventory",
+        lot.id,
+        {"reference": lot.reference, "before": before, "after": after},
+        request.client.host if request.client else None,
+    )
+    db.commit()
+    db.refresh(lot)
+    return {
+        "id": lot.id,
+        "reference": lot.reference,
+        "status": lot.status,
+        "trays_available": lot.trays_available,
+    }
+
+
+@app.delete("/api/admin/marketplace/inventory/{inventory_id}", status_code=204)
+def marketplace_admin_delete_inventory(
+    inventory_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    ceo: User = Depends(ceo_user),
+):
+    lot = db.get(InventoryLot, inventory_id)
+    if not lot:
+        raise HTTPException(404, "Inventory lot not found")
+    audit(
+        db,
+        ceo,
+        "Removed marketplace inventory",
+        "inventory",
+        lot.id,
+        {"reference": lot.reference},
+        request.client.host if request.client else None,
+    )
+    db.delete(lot)
+    db.commit()
+
+
+@app.get("/api/admin/marketplace/quotes")
+def marketplace_admin_quotes(
+    status: str | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    query = select(Order).where(
+        Order.notes.ilike("%public marketplace quotation workflow%")
+    )
+    if status and status != "all":
+        query = query.where(Order.status == status)
+    rows = db.scalars(query.order_by(desc(Order.created_at))).all()
+    return [serialize(row) for row in rows]
+
+
+@app.patch("/api/admin/marketplace/quotes/{order_id}")
+async def marketplace_admin_update_quote(
+    order_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    order = db.get(Order, order_id)
+    if not order:
+        raise HTTPException(404, "Quotation request not found")
+    if "public marketplace quotation workflow" not in (order.notes or "").lower():
+        raise HTTPException(400, "This order is not a marketplace quotation request")
+
+    data = await request.json()
+    before = {
+        "status": order.status,
+        "quoted_amount": float(order.quoted_amount) if order.quoted_amount is not None else None,
+        "assigned_to_id": order.assigned_to_id,
+    }
+
+    if "status" in data:
+        order.status = str(data["status"]).strip()
+    if "quoted_amount" in data:
+        order.quoted_amount = (
+            float(data["quoted_amount"])
+            if data["quoted_amount"] not in (None, "")
+            else None
+        )
+    if "assigned_to_id" in data:
+        assigned_to_id = data["assigned_to_id"]
+        if assigned_to_id in (None, ""):
+            order.assigned_to_id = None
+        else:
+            assignee = db.get(User, int(assigned_to_id))
+            if not assignee or not assignee.is_active:
+                raise HTTPException(400, "Invalid administrator assignment")
+            order.assigned_to_id = assignee.id
+    if "internal_notes" in data:
+        order.internal_notes = str(data["internal_notes"]).strip() or None
+
+    after = {
+        "status": order.status,
+        "quoted_amount": float(order.quoted_amount) if order.quoted_amount is not None else None,
+        "assigned_to_id": order.assigned_to_id,
+    }
+    audit(
+        db,
+        user,
+        "Updated marketplace quotation",
+        "order",
+        order.id,
+        {"reference": order.reference, "before": before, "after": after},
+        request.client.host if request.client else None,
+    )
+    db.commit()
+    db.refresh(order)
+    return serialize(order)
+
+
+
 @app.get("/api/admin/{resource}")
 def list_records(resource: str, q: str|None=None, status: str|None=None, limit:int=Query(100,le=500), offset:int=0, db:Session=Depends(get_db), user:User=Depends(current_user)):
     model=MODEL_MAP.get(resource)
