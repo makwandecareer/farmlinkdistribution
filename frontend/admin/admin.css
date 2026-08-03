@@ -195,3 +195,6 @@ button{white-space:nowrap}
 .drawer-error strong{font-size:1rem;color:var(--danger)}
 .drawer-error p{color:var(--muted);max-width:330px}
 .dark .profile-governance>div{background:#12271f;border-color:#2a453a}
+
+/* Administrator profile helper fix V8.3 */
+.profile-section .detail strong{overflow-wrap:anywhere}

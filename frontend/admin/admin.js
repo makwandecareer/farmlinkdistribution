@@ -9,6 +9,9 @@ function fmtAdminDate(value){
   const d=new Date(value);
   return `${d.toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'})}<div class="ref">${d.toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit',hour12:false})} SAST</div>`;
 }
+function profileDetail(label,value){
+  return `<div class="detail"><span>${esc(label)}</span><strong>${value===null||value===undefined||value===''?'—':value}</strong></div>`;
+}
 function roleBadge(role){
   const value=String(role||'ADMIN').toUpperCase();
   const labels={CEO:'CEO',FINANCE:'Finance',OPERATIONS:'Operations',LOGISTICS:'Logistics',QUALITY:'Quality control',ADMIN:'Administrator'};
@@ -204,12 +207,12 @@ window.viewAdministrator=async id=>{
       <section class="profile-section">
         <h3>Account information</h3>
         <div class="detail-grid">
-          ${detail('Email address',u.email)}
-          ${detail('Department role',u.role)}
-          ${detail('Account status',u.is_active?'Active':'Suspended')}
-          ${detail('Password status',u.must_change_password?'Temporary password active':'Password changed')}
-          ${detail('Created',u.created_at?new Date(u.created_at).toLocaleString('en-ZA'):'Not recorded')}
-          ${detail('Last login',u.last_login_at?new Date(u.last_login_at).toLocaleString('en-ZA'):'Never')}
+          ${profileDetail('Email address',u.email)}
+          ${profileDetail('Department role',u.role)}
+          ${profileDetail('Account status',u.is_active?'Active':'Suspended')}
+          ${profileDetail('Password status',u.must_change_password?'Temporary password active':'Password changed')}
+          ${profileDetail('Created',u.created_at?new Date(u.created_at).toLocaleString('en-ZA'):'Not recorded')}
+          ${profileDetail('Last login',u.last_login_at?new Date(u.last_login_at).toLocaleString('en-ZA'):'Never')}
         </div>
       </section>
 
@@ -229,7 +232,8 @@ window.viewAdministrator=async id=>{
       </div>
     `);
   }catch(e){
-    openDrawer(`<div class="drawer-error"><strong>Unable to load profile</strong><p>${esc(e.message||'The administrator profile could not be loaded.')}</p><button class="btn btn-secondary" onclick="closeDrawer()">Close</button></div>`);
+    console.error('Administrator profile error:',e);
+    openDrawer(`<div class="drawer-error"><strong>Unable to load profile</strong><p>${esc(e?.message||'The administrator profile could not be loaded.')}</p><button class="btn btn-secondary" onclick="closeDrawer()">Close</button></div>`);
   }
 };
 
