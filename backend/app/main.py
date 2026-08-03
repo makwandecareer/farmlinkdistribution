@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from .config import get_settings
 from .database import Base, engine, get_db, SessionLocal
 from .models import User, UserRole, Farmer, Buyer, Order, MembershipApplication, Payment, AuditLog, LoginAttempt
-from .schemas import LoginIn, ChangePasswordIn, UserCreate, UserOut, TokenOut, FarmerCreate, BuyerCreate, OrderCreate, MembershipCreate, RecordUpdate, PaymentCreate, PaymentUpdate
+from .schemas import LoginIn, ChangePasswordIn, UserCreate, UserUpdate, UserPasswordReset, UserOut, TokenOut, FarmerCreate, BuyerCreate, OrderCreate, MembershipCreate, RecordUpdate, PaymentCreate, PaymentUpdate
 from .security import hash_password, verify_password, create_access_token
 from .deps import current_user, ceo_user
 from .utils import make_reference, audit
@@ -105,6 +105,57 @@ def create_user(data:UserCreate, db:Session=Depends(get_db), ceo:User=Depends(ce
     if db.scalar(select(User).where(User.email==data.email.lower())): raise HTTPException(409,"Email already exists")
     u=User(full_name=data.full_name,email=data.email.lower(),job_title=data.job_title,password_hash=hash_password(data.temporary_password),role=data.role,must_change_password=True)
     db.add(u); db.flush(); audit(db,ceo,"Created administrator","user",u.id,{"email":u.email}); db.commit(); db.refresh(u); return u
+
+
+@app.get("/api/admin/users/{user_id}", response_model=UserOut)
+def user_detail(user_id:int, db:Session=Depends(get_db), ceo:User=Depends(ceo_user)):
+    u=db.get(User,user_id)
+    if not u: raise HTTPException(404,"Administrator not found")
+    return u
+
+@app.patch("/api/admin/users/{user_id}", response_model=UserOut)
+def update_user(user_id:int, data:UserUpdate, db:Session=Depends(get_db), ceo:User=Depends(ceo_user)):
+    u=db.get(User,user_id)
+    if not u: raise HTTPException(404,"Administrator not found")
+    duplicate=db.scalar(select(User).where(User.email==data.email.lower(),User.id!=user_id))
+    if duplicate: raise HTTPException(409,"Email already exists")
+    if u.role==UserRole.CEO.value and data.role!=UserRole.CEO.value:
+        raise HTTPException(400,"The protected CEO role cannot be changed")
+    if u.role!=UserRole.CEO.value and data.role==UserRole.CEO.value:
+        raise HTTPException(400,"A second CEO account cannot be assigned")
+    before={"full_name":u.full_name,"email":u.email,"job_title":u.job_title,"role":u.role}
+    u.full_name=data.full_name.strip()
+    u.email=data.email.lower()
+    u.job_title=data.job_title.strip()
+    if u.role!=UserRole.CEO.value:
+        u.role=data.role
+    audit(db,ceo,"Updated administrator","user",u.id,{"before":before,"after":{"full_name":u.full_name,"email":u.email,"job_title":u.job_title,"role":u.role}})
+    db.commit(); db.refresh(u); return u
+
+@app.post("/api/admin/users/{user_id}/reset-password", response_model=UserOut)
+def reset_user_password(user_id:int, data:UserPasswordReset, db:Session=Depends(get_db), ceo:User=Depends(ceo_user)):
+    u=db.get(User,user_id)
+    if not u: raise HTTPException(404,"Administrator not found")
+    if u.role==UserRole.CEO.value and u.id!=ceo.id:
+        raise HTTPException(400,"Another CEO account cannot be reset")
+    u.password_hash=hash_password(data.temporary_password)
+    u.must_change_password=True
+    audit(db,ceo,"Reset administrator password","user",u.id,{"email":u.email})
+    db.commit(); db.refresh(u); return u
+
+@app.get("/api/admin/users/{user_id}/audit")
+def user_audit(user_id:int, limit:int=Query(100,le=500), db:Session=Depends(get_db), ceo:User=Depends(ceo_user)):
+    u=db.get(User,user_id)
+    if not u: raise HTTPException(404,"Administrator not found")
+    rows=db.scalars(
+        select(AuditLog).where(
+            or_(
+                AuditLog.actor_user_id==user_id,
+                ((AuditLog.entity_type=="user") & (AuditLog.entity_id==user_id))
+            )
+        ).order_by(desc(AuditLog.created_at)).limit(limit)
+    ).all()
+    return [{c.name:getattr(r,c.name) for c in r.__table__.columns} for r in rows]
 
 @app.patch("/api/admin/users/{user_id}/status", response_model=UserOut)
 def user_status(user_id:int, active:bool, db:Session=Depends(get_db), ceo:User=Depends(ceo_user)):

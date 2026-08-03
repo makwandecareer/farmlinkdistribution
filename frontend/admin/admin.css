@@ -143,18 +143,14 @@ button{white-space:nowrap}
 @media(max-width:1100px){.admin-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.admin-summary{grid-template-columns:1fr}.admin-add-btn{width:100%}}
 
-
-/* FarmLink Enterprise Operations V7 */
-.national-summary-panel{margin-top:18px}
-.national-summary-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;padding:18px 20px 0}
-.national-summary-grid>div{padding:16px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(145deg,#fff,#f7faf8)}
-.national-summary-grid span{display:block;color:var(--muted);font-size:.67rem;text-transform:uppercase;letter-spacing:.06em;font-weight:850}
-.national-summary-grid strong{display:block;margin-top:6px;font-size:1.25rem;color:var(--green-900)}
-.province-performance-table{padding:18px 20px 22px;overflow:auto}
-.payment-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
-.drawer-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
-.audit-toolbar{margin-bottom:14px;background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:12px}
-.audit-toolbar input{min-width:330px}
-.dark .national-summary-grid>div{background:linear-gradient(145deg,#12271f,#0f211b)}
-@media(max-width:1200px){.national-summary-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.payment-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:720px){.national-summary-grid,.payment-kpis{grid-template-columns:1fr}.audit-toolbar input{min-width:0}}
+/* FarmLink Administrator Governance V7.1 */
+.admin-action-cell{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+.compact{padding:7px 10px;font-size:.7rem}
+.icon-action{width:34px;height:34px;border:1px solid var(--line);background:var(--surface);border-radius:9px;font-size:1.05rem;cursor:pointer;font-weight:900}
+.icon-action:hover{border-color:var(--green-600);background:#f4f8f6}
+.admin-action-menu{display:grid;gap:9px;margin-top:22px}
+.admin-action-menu button{width:100%;text-align:left;padding:13px 14px;border:1px solid var(--line);background:#fff;border-radius:10px;font-weight:800;cursor:pointer}
+.admin-action-menu button:hover{border-color:var(--green-600);background:#f5f9f7}
+.admin-action-menu button.danger{color:var(--danger);border-color:#efcdcd;background:#fffafa}
+.dark .admin-action-menu button,.dark .icon-action{background:#12271f;border-color:#2a453a;color:#e9f3ee}
+@media(max-width:720px){.admin-action-cell{justify-content:flex-start}.compact{display:none}}

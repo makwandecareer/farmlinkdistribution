@@ -20,6 +20,15 @@ class UserCreate(BaseModel):
     role: Literal["ADMIN","FINANCE","OPERATIONS","LOGISTICS","QUALITY"] = "ADMIN"
     temporary_password: str = Field(min_length=10, max_length=200)
 
+class UserUpdate(BaseModel):
+    full_name: str = Field(min_length=2, max_length=160)
+    email: EmailStr
+    job_title: str = Field(min_length=2, max_length=160)
+    role: Literal["ADMIN","FINANCE","OPERATIONS","LOGISTICS","QUALITY","CEO"]
+
+class UserPasswordReset(BaseModel):
+    temporary_password: str = Field(min_length=10, max_length=200)
+
 class UserOut(ORMModel):
     id: int; full_name: str; email: EmailStr; role: str; job_title: str; is_active: bool; must_change_password: bool; created_at: datetime; last_login_at: datetime | None
 

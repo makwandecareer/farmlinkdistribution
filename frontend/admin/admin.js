@@ -77,38 +77,102 @@ window.openQualityModal=()=>openForm('Open quality case',`<label>Case type<input
 async function loadFinance(){const [inv,sp,tx,rf]=await Promise.all([api('/admin/invoices'),api('/admin/supplier-payments'),api('/admin/payment-transactions'),api('/admin/refunds')]);const outstanding=inv.reduce((s,x)=>s+Math.max(0,Number(x.total_amount)-Number(x.amount_paid)),0);$('#finance').innerHTML=pageHead('Financial governance','Finance centre','Invoices, supplier settlements, Paystack transactions, balances and refunds.',`<button class="btn btn-secondary" onclick="openSupplierPaymentModal()">Supplier payment</button> <button class="btn btn-primary" onclick="openInvoiceModal()">Create invoice</button>`)+`<div class="metrics"><article class="metric"><span class="label">Outstanding invoices</span><strong>${fmtMoney(outstanding)}</strong><small>${inv.filter(x=>x.status!=='Paid').length} open documents</small></article><article class="metric"><span class="label">Paystack transactions</span><strong>${tx.length}</strong><small>Server-verified records</small></article><article class="metric"><span class="label">Supplier payments</span><strong>${sp.length}</strong><small>Farmer settlements</small></article><article class="metric"><span class="label">Refund cases</span><strong>${rf.length}</strong><small>Controlled workflow</small></article></div><div class="grid-2"><div class="panel table-wrap">${inv.length?table(['Invoice','Customer','Total','Paid','Balance','Status','PDF'],inv.map(x=>[esc(x.reference),esc(x.customer_name),fmtMoney(x.total_amount),fmtMoney(x.amount_paid),fmtMoney(Number(x.total_amount)-Number(x.amount_paid)),badge(x.status),`<button class="link-btn" onclick="downloadFile('/admin/invoices/${x.id}/pdf','${esc(x.reference)}.pdf')">Download</button>`])):empty('No invoices created.')}</div><div class="panel table-wrap">${sp.length?table(['Reference','Farmer','Amount','Method','Status'],sp.map(x=>[esc(x.reference),esc(x.farmer_name),fmtMoney(x.amount),esc(x.method),badge(x.status)])):empty('No supplier payments.')}</div></div>`}
 window.openInvoiceModal=()=>openForm('Create invoice',`<label>Related type<select id="fType"><option>order</option><option>membership</option></select></label><label>Record ID<input id="fEntity" type="number" min="1" required></label><label>Customer name<input id="fName" required></label><label>Customer email<input id="fEmail" type="email"></label><label>Subtotal (R)<input id="fSub" type="number" min="0" step=".01" required></label><label>Tax (R)<input id="fTax" type="number" min="0" step=".01" value="0"></label><label>Due date<input id="fDue" type="date" required></label><label class="full">Description<textarea id="fDesc" required></textarea></label>`,async()=>{await api('/admin/invoices',{method:'POST',body:JSON.stringify({entity_type:$('#fType').value,entity_id:+$('#fEntity').value,customer_name:$('#fName').value,customer_email:$('#fEmail').value||null,subtotal:+$('#fSub').value,tax_amount:+$('#fTax').value,due_date:$('#fDue').value,description:$('#fDesc').value})});loadFinance()});
 window.openSupplierPaymentModal=async()=>{const farmers=(await api('/admin/farmers?status=Approved')).items;openForm('Record supplier payment',`<label>Farmer<select id="sFarmer">${farmers.map(x=>`<option value="${x.id}">${esc(x.farm_name)}</option>`).join('')}</select></label><label>Order ID<input id="sOrder" type="number" min="1"></label><label>Amount (R)<input id="sAmount" type="number" min=".01" step=".01" required></label><label>Method<select id="sMethod"><option>EFT</option><option>PayShap</option><option>Cash deposit</option></select></label><label>Bank reference<input id="sRef"></label><label>Status<select id="sStatus"><option>Pending</option><option>Approved</option><option>Paid</option><option>Failed</option></select></label>`,async()=>{await api('/admin/supplier-payments',{method:'POST',body:JSON.stringify({farmer_id:+$('#sFarmer').value,order_id:$('#sOrder').value?+$('#sOrder').value:null,amount:+$('#sAmount').value,method:$('#sMethod').value,bank_reference:$('#sRef').value||null,status:$('#sStatus').value})});loadFinance()})}
-async function loadPayments(){
-  const rows=await api('/admin/payments');
-  const paid=rows.filter(x=>x.status==='Paid');
-  const total=paid.reduce((s,x)=>s+Number(x.amount||0),0);
-  const average=paid.length?total/paid.length:0;
-  const methods={};
-  paid.forEach(x=>methods[x.method]=(methods[x.method]||0)+Number(x.amount||0));
-  const topMethod=Object.entries(methods).sort((a,b)=>b[1]-a[1])[0]?.[0]||'No verified payments';
-
-  $('#payments').innerHTML=
-    pageHead('Finance control','Payment records','Verified Paystack, Capitec EFT, PayShap, deposit and card records.',
-      `<button class="btn btn-primary" onclick="openPaymentModal()">Add payment record</button>`)+
-    `<div class="metrics payment-kpis">
-      ${metricCard('Verified revenue',fmtMoney(total),'Paid records','R','emerald')}
-      ${metricCard('Paid transactions',paid.length,'Successfully reconciled','✓','forest')}
-      ${metricCard('Average transaction',fmtMoney(average),'Verified payments','↗','gold')}
-      ${metricCard('Leading method',esc(topMethod),'By verified value','◉','blue')}
+async function loadPayments(){const rows=await api('/admin/payments');$('#payments').innerHTML=pageHead('Finance control','Payment records','Manual Capitec EFT, PayShap, deposit and card records.',`<button class="btn btn-primary" onclick="openPaymentModal()">Add payment record</button>`)+`<div class="panel table-wrap">${rows.length?table(['Reference','Payer','Amount','Method','Status','Date'],rows.map(r=>[esc(r.reference),esc(r.payer_name),fmtMoney(r.amount),esc(r.method),badge(r.status),fmtDate(r.created_at)])):empty()}</div>`}
+window.openPaymentModal=()=>openForm('Add payment record',`<label>Related to<select id="pType"><option value="order">Order</option><option value="membership">Membership</option></select></label><label>Record ID<input id="pEntity" type="number" min="1" required></label><label>Payer name<input id="pName" required></label><label>Amount (R)<input id="pAmount" type="number" step=".01" min=".01" required></label><label>Method<select id="pMethod"><option>EFT / bank transfer</option><option>PayShap</option><option>Card</option><option>Cash deposit</option></select></label><label>Status<select id="pStatus"><option>Pending</option><option>Invoiced</option><option>Part paid</option><option>Paid</option><option>Failed</option><option>Refunded</option></select></label>`,async()=>{await api('/admin/payments',{method:'POST',body:JSON.stringify({entity_type:$('#pType').value,entity_id:+$('#pEntity').value,payer_name:$('#pName').value,amount:+$('#pAmount').value,method:$('#pMethod').value,status:$('#pStatus').value})});loadPayments()})
+async function loadNotifications(){const rows=await api('/admin/notifications');$('#notifications').innerHTML=pageHead('Customer communication','Communications','Send email notifications and maintain a permanent delivery queue.',`<button class="btn btn-primary" onclick="openNotificationModal()">Create notification</button>`)+`<div class="panel table-wrap">${rows.length?table(['Channel','Recipient','Subject','Status','Sent'],rows.map(x=>[esc(x.channel),esc(x.recipient),esc(x.subject),badge(x.status),fmtDate(x.sent_at||x.created_at)])):empty()}</div>`}
+window.openNotificationModal=()=>openForm('Create notification',`<label>Channel<select id="nChannel"><option>Email</option><option>SMS</option><option>WhatsApp</option></select></label><label>Recipient<input id="nRecipient" required></label><label class="full">Subject<input id="nSubject"></label><label class="full">Message<textarea id="nMessage" rows="6" required></textarea></label>`,async()=>{await api('/admin/notifications',{method:'POST',body:JSON.stringify({channel:$('#nChannel').value,recipient:$('#nRecipient').value,subject:$('#nSubject').value||null,message:$('#nMessage').value})});loadNotifications()})
+async function loadDocuments(){const rows=await api('/admin/documents');$('#documents').innerHTML=pageHead('Secure records','Document centre','Store supporting documents in PostgreSQL with authenticated download access.',`<button class="btn btn-primary" onclick="openDocumentModal()">Upload document</button>`)+`<div class="panel table-wrap">${rows.length?table(['Reference','Type','Entity','Filename','Size','Uploaded',''],rows.map(x=>[esc(x.reference),esc(x.document_type),`${esc(x.entity_type)} #${x.entity_id}`,esc(x.filename),`${Math.ceil(x.file_size/1024)} KB`,fmtDate(x.created_at),`<button class="link-btn" onclick="downloadFile('/admin/documents/${x.id}/download','${esc(x.filename)}')">Download</button>`])):empty()}</div>`}
+window.openDocumentModal=()=>{openModal();$('#modalBody').innerHTML=`<span class="kicker">Secure storage</span><h2>Upload document</h2><form id="docForm" class="form-grid"><label>Entity type<select id="docType"><option>farmer</option><option>buyer</option><option>order</option><option>payment</option></select></label><label>Entity ID<input id="docEntity" type="number" min="1" required></label><label class="full">Document type<input id="docLabel" placeholder="Proof of payment, CIPC, certificate..." required></label><label class="full">File<input id="docFile" type="file" required></label><div class="form-actions full"><button class="btn btn-primary">Upload securely</button></div></form>`;$('#docForm').onsubmit=async e=>{e.preventDefault();const fd=new FormData();fd.append('entity_type',$('#docType').value);fd.append('entity_id',$('#docEntity').value);fd.append('document_type',$('#docLabel').value);fd.append('file',$('#docFile').files[0]);const r=await fetch(API+'/admin/documents',{method:'POST',headers:{Authorization:`Bearer ${token}`},body:fd});if(!r.ok)throw new Error((await r.json()).detail||'Upload failed');toast('Document uploaded');closeModal();loadDocuments()}}
+async function loadUsers(){
+  if(!requireCEO()){
+    $('#users').innerHTML=pageHead('Access governance','Administrator management','This section is restricted to the protected CEO account.','')+
+      `<div class="panel"><div class="empty"><strong>CEO authorisation required</strong><p>Sign in with the CEO account to manage administrators.</p></div></div>`;
+    return;
+  }
+  const users=await api('/admin/users');
+  $('#users').innerHTML=
+    pageHead('Access governance','Administrator management','Create administrators, assign departmental roles and control access from one protected CEO workspace.',
+      `<button class="btn btn-primary admin-add-btn" id="addAdministratorBtn" type="button">+ Add administrator</button>`)+
+    `<div class="admin-summary">
+      <article><span>Total administrators</span><strong>${users.length}</strong></article>
+      <article><span>Active accounts</span><strong>${users.filter(u=>u.is_active).length}</strong></article>
+      <article><span>Suspended accounts</span><strong>${users.filter(u=>!u.is_active).length}</strong></article>
+      <article><span>Protected owner</span><strong>1 CEO</strong></article>
     </div>
-    <div class="panel table-wrap">${rows.length?table(
-      ['Reference','Payer','Amount','Method','Status','Entity','Date','Actions'],
-      rows.map(r=>[
-        esc(r.reference),
-        esc(r.payer_name),
-        fmtMoney(r.amount),
-        esc(r.method),
-        badge(r.status),
-        `${esc(r.entity_type)} #${r.entity_id}`,
-        fmtDate(r.created_at),
-        `<div class="row-actions"><button class="link-btn" onclick="openPaymentDetail(${r.id})">View</button>${r.external_reference&&r.status==='Paid'?`<button class="link-btn" onclick="downloadFile('/payments/receipt/${esc(r.external_reference)}','${esc(r.reference)}-receipt.pdf')">Receipt</button>`:''}</div>`
+    <div class="panel table-wrap">${users.length?table(
+      ['Administrator','Department & role','Account status','Last login','Actions'],
+      users.map(u=>[
+        `<div class="admin-identity"><span class="admin-avatar">${esc((u.full_name||'A').split(' ').map(x=>x[0]).slice(0,2).join(''))}</span><div><strong>${esc(u.full_name)}</strong><div class="ref">${esc(u.email)}</div></div></div>`,
+        `<strong>${esc(u.job_title||'Administrator')}</strong><div class="ref">${esc(u.role)}</div>`,
+        badge(u.is_active?'Approved':'Rejected'),
+        u.last_login_at?new Date(u.last_login_at).toLocaleString('en-ZA'):'Never',
+        `<div class="admin-action-cell">${String(u.role||'').toUpperCase()==='CEO'?'<span class="protected-owner">Protected CEO account</span>':'<button class="btn btn-secondary compact">Manage</button>'}<button class="icon-action" onclick="openAdminActions(${u.id},${String(u.role||'').toUpperCase()==='CEO'})" aria-label="Open administrator actions">⋮</button></div>`
       ])
-    ):smartEmpty('No payment records yet','Verified Paystack and manually approved payments will appear here.','finance','Open finance centre')}</div>`;
+    ):empty('No administrator accounts have been created.')}</div>`;
+  $('#addAdministratorBtn').onclick=openUserModal;
 }
+
+window.openAdminActions=async(id,isProtected=false)=>{
+  if(!requireCEO())return;
+  try{
+    const u=await api(`/admin/users/${id}`);
+    const actions=[
+      `<button onclick="viewAdministrator(${id})">View profile</button>`,
+      `<button onclick="editAdministrator(${id})">Edit details and role</button>`,
+      `<button onclick="resetAdministratorPassword(${id})">Reset temporary password</button>`,
+      `<button onclick="viewAdministratorAudit(${id})">View audit history</button>`
+    ];
+    if(!isProtected){
+      actions.push(`<button onclick="toggleUser(${id},${!u.is_active})">${u.is_active?'Suspend account':'Reactivate account'}</button>`);
+      actions.push(`<button class="danger" onclick="removeUser(${id})">Delete account</button>`);
+    }
+    openDrawer(`<span class="kicker">Access governance</span><h2>${esc(u.full_name)}</h2><p class="muted">${esc(u.job_title)} · ${esc(u.role)}</p><div class="admin-action-menu">${actions.join('')}</div>`);
+  }catch(e){toast(e.message,false)}
+};
+
+window.viewAdministrator=async id=>{
+  const u=await api(`/admin/users/${id}`);
+  openDrawer(`<span class="kicker">Administrator profile</span><h2>${esc(u.full_name)}</h2>
+    <div class="detail-grid">
+      ${detail('Email',u.email)}${detail('Job title',u.job_title)}${detail('Role',u.role)}
+      ${detail('Status',u.is_active?'Active':'Suspended')}
+      ${detail('Password status',u.must_change_password?'Temporary password active':'Password changed')}
+      ${detail('Created',new Date(u.created_at).toLocaleString('en-ZA'))}
+      ${detail('Last login',u.last_login_at?new Date(u.last_login_at).toLocaleString('en-ZA'):'Never')}
+    </div>`);
+};
+
+window.editAdministrator=async id=>{
+  const u=await api(`/admin/users/${id}`);
+  const protectedCEO=String(u.role||'').toUpperCase()==='CEO';
+  openForm('Edit administrator',`
+    <label>Full name<input id="eName" value="${esc(u.full_name)}" required></label>
+    <label>Email address<input id="eEmail" type="email" value="${esc(u.email)}" required></label>
+    <label>Job title<input id="eTitle" value="${esc(u.job_title)}" required></label>
+    <label>Department role<select id="eRole" ${protectedCEO?'disabled':''}>
+      ${['ADMIN','FINANCE','OPERATIONS','LOGISTICS','QUALITY'].map(r=>`<option value="${r}" ${u.role===r?'selected':''}>${r}</option>`).join('')}
+      ${protectedCEO?'<option value="CEO" selected>CEO</option>':''}
+    </select></label>`,
+    async()=>{
+      await api(`/admin/users/${id}`,{method:'PATCH',body:JSON.stringify({
+        full_name:$('#eName').value.trim(),email:$('#eEmail').value.trim().toLowerCase(),
+        job_title:$('#eTitle').value.trim(),role:protectedCEO?'CEO':$('#eRole').value
+      })});
+      toast('Administrator details updated');await loadUsers();
+    });
+};
+
+window.resetAdministratorPassword=id=>openForm('Reset administrator password',`
+  <label class="full">New temporary password<input id="rPass" type="password" minlength="10" required autocomplete="new-password" placeholder="Minimum 10 characters"></label>
+  <div class="full admin-security-note">The administrator must change this temporary password after the next successful login.</div>`,
+  async()=>{await api(`/admin/users/${id}/reset-password`,{method:'POST',body:JSON.stringify({temporary_password:$('#rPass').value})});toast('Temporary password created');await loadUsers();});
+
+window.viewAdministratorAudit=async id=>{
+  const rows=await api(`/admin/users/${id}/audit`);
+  openDrawer(`<span class="kicker">Security history</span><h2>Administrator audit history</h2><div class="panel table-wrap">${rows.length?table(
+    ['Date','Actor','Action','Entity'],rows.map(r=>[new Date(r.created_at).toLocaleString('en-ZA'),esc(r.actor_name||'System'),esc(r.action),`${esc(r.entity_type)}${r.entity_id?' #'+r.entity_id:''}`])
+  ):empty('No audit history is available for this account.')}</div>`);
+};
 
 window.openUserModal=()=>{
   if(!requireCEO())return;
@@ -163,41 +227,44 @@ window.removeUser=async id=>{
     await loadUsers();
   }catch(err){toast(err.message,false)}
 };
-async function loadAudit(){
-  const rows=await api('/admin/audit?limit=500');
-  $('#audit').innerHTML=
-    pageHead('Governance','Audit trail','Chronological record of access, approvals, finance activity and operational decisions.','')+
-    `<div class="audit-toolbar toolbar">
-      <input id="auditSearch" placeholder="Search actor, action or entity">
-      <select id="auditAction"><option value="all">All activities</option>
-        <option>Signed in</option><option>Created administrator</option><option>Activated administrator</option>
-        <option>Suspended administrator</option><option>Removed administrator</option>
-        <option>Approved</option><option>Rejected</option><option>Paystack payment</option>
-      </select>
-    </div><div id="auditTable" class="panel table-wrap"></div>`;
-  const render=()=>{
-    const q=$('#auditSearch').value.trim().toLowerCase();
-    const action=$('#auditAction').value.toLowerCase();
-    const filtered=rows.filter(r=>{
-      const hay=`${r.actor_name||''} ${r.action||''} ${r.entity_type||''} ${r.entity_id||''}`.toLowerCase();
-      const qok=!q||hay.includes(q);
-      const aok=action==='all'||String(r.action||'').toLowerCase().includes(action);
-      return qok&&aok;
-    });
-    $('#auditTable').innerHTML=filtered.length?table(
-      ['Date','Actor','Action','Entity','IP address'],
-      filtered.map(r=>[
-        new Date(r.created_at).toLocaleString('en-ZA'),
-        esc(r.actor_name),
-        `<strong>${esc(r.action)}</strong>`,
-        `${esc(r.entity_type)}${r.entity_id?' #'+r.entity_id:''}`,
-        esc(r.ip_address||'—')
-      ])
-    ):empty('No audit records match the selected filters.');
-  };
-  $('#auditSearch').oninput=debounce(render,180);
-  $('#auditAction').onchange=render;
-  render();
+async function loadAudit(){const rows=await api('/admin/audit?limit=300');$('#audit').innerHTML=pageHead('Governance','Audit trail','Chronological record of access, approvals and operational decisions.','')+`<div class="panel table-wrap">${rows.length?table(['Date','Actor','Action','Entity'],rows.map(r=>[new Date(r.created_at).toLocaleString('en-ZA'),esc(r.actor_name),esc(r.action),`${esc(r.entity_type)}${r.entity_id?' #'+r.entity_id:''}`])):empty()}</div>`}
+window.downloadFile=async(path,name)=>{try{const r=await fetch(API+path,{headers:{Authorization:`Bearer ${token}`}});if(!r.ok)throw new Error('Download failed');const blob=await r.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name||'download';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){toast(e.message,false)}};
+function pageHead(k,t,d,a=''){return `<div class="page-head"><div><span class="kicker">${k}</span><h2>${t}</h2><p class="muted">${d}</p></div><div>${a}</div></div>`}
+function openForm(title,fields,submit){openModal();$('#modalBody').innerHTML=`<span class="kicker">FarmLink control</span><h2>${title}</h2><form id="dynamicForm" class="form-grid">${fields}<div class="form-actions full"><button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-primary">Save record</button></div></form>`;$('#dynamicForm').onsubmit=async e=>{e.preventDefault();try{await submit();toast('Record saved');closeModal()}catch(err){toast(err.message,false)}}}
+function openPasswordModal(){openModal();$('#modalBody').innerHTML=`<span class="kicker">Security required</span><h2>Change temporary password</h2><p class="muted">Your administrator account must use a private password before continuing.</p><form id="passwordForm" class="form-grid"><label class="full">Current password<input id="oldPass" type="password" required></label><label class="full">New password<input id="newPass" type="password" minlength="10" required></label><div class="form-actions full"><button class="btn btn-primary">Update password</button></div></form>`;$('#passwordForm').onsubmit=async e=>{e.preventDefault();await api('/auth/change-password',{method:'POST',body:JSON.stringify({current_password:$('#oldPass').value,new_password:$('#newPass').value})});currentUser.must_change_password=false;toast('Password updated');closeModal()}}
+function openDrawer(){$('#drawer').classList.remove('hidden');$('#drawerBackdrop').classList.remove('hidden')}window.closeDrawer=()=>{$('#drawer').classList.add('hidden');$('#drawerBackdrop').classList.add('hidden')};$('#closeDrawer').onclick=closeDrawer;$('#drawerBackdrop').onclick=closeDrawer;
+function openModal(){$('#modal').classList.remove('hidden');$('#modalBackdrop').classList.remove('hidden')}window.closeModal=()=>{$('#modal').classList.add('hidden');$('#modalBackdrop').classList.add('hidden')};$('#closeModal').onclick=closeModal;$('#modalBackdrop').onclick=closeModal;
+
+// v3.0 interface controls
+const accountToggle=$('#accountToggle'),accountDropdown=$('#accountDropdown');
+accountToggle.onclick=e=>{e.stopPropagation();const open=accountDropdown.classList.toggle('hidden')===false;accountToggle.setAttribute('aria-expanded',String(open))};
+document.addEventListener('click',()=>accountDropdown.classList.add('hidden'));
+$('#accountLogout').onclick=logout;
+$('#profileAction').onclick=()=>{accountDropdown.classList.add('hidden');openPasswordModal()};
+$('#mobileNav').onclick=()=>{$('.sidebar').classList.add('open');$('#mobileBackdrop').classList.remove('hidden')};
+$('#mobileBackdrop').onclick=()=>{$('.sidebar').classList.remove('open');$('#mobileBackdrop').classList.add('hidden')};
+$$('#nav button').forEach(b=>b.addEventListener('click',()=>{$('.sidebar').classList.remove('open');$('#mobileBackdrop').classList.add('hidden')}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawer();closeModal();accountDropdown.classList.add('hidden');$('.sidebar').classList.remove('open');$('#mobileBackdrop').classList.add('hidden')}});
+
+// V4 boot moved to end of file
+
+
+/* FarmLink Admin V4 — executive productivity and intelligence */
+const ICONS={
+ dashboard:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>',
+ farmers:'<svg viewBox="0 0 24 24"><path d="M12 21V10"/><path d="M7 15c-3 0-4-2-4-5 3 0 5 1 6 4"/><path d="M17 12c3 0 4-2 4-5-3 0-5 1-6 4"/><path d="M8 21h8"/></svg>',
+ buyers:'<svg viewBox="0 0 24 24"><path d="M4 10h16"/><path d="M5 10V5h14v5"/><path d="M6 10v9h12v-9"/><path d="M9 14h6"/></svg>',
+ orders:'<svg viewBox="0 0 24 24"><path d="M6 3h12v18H6z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>',
+ memberships:'<svg viewBox="0 0 24 24"><path d="M12 3l3 6 6 .9-4.5 4.4 1.1 6.2L12 17.6 6.4 20.5l1.1-6.2L3 9.9 9 9z"/></svg>',
+ inventory:'<svg viewBox="0 0 24 24"><path d="M4 7l8-4 8 4-8 4z"/><path d="M4 7v10l8 4 8-4V7"/><path d="M12 11v10"/></svg>',
+ logistics:'<svg viewBox="0 0 24 24"><path d="M3 6h11v10H3z"/><path d="M14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg>',
+ quality:'<svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.4 8.2-8 9-4.6-.8-8-4-8-9V7z"/><path d="M8.5 12l2.2 2.2L16 9"/></svg>',
+ finance:'<svg viewBox="0 0 24 24"><path d="M4 7h16v12H4z"/><path d="M4 10h16"/><path d="M8 15h3"/></svg>',
+ payments:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.8-.7-1.8-1-3-1-1.7 0-3 .8-3 2s1 1.8 3 2 3 1 3 2.2-1.3 2.1-3 2.1c-1.3 0-2.4-.4-3.2-1.2M12 6.5v11"/></svg>',
+ notifications:'<svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 00-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>',
+ documents:'<svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>',
+ users:'<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21c.5-4 3-6 7-6s6.5 2 7 6"/><path d="M18 8v6M15 11h6"/></svg>',
+ audit:'<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 109-9 9 9 0 00-6.4 2.6L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>'
 };
 function installIcons(){
   $$('#nav button').forEach(button=>{const key=button.dataset.view;const slot=button.querySelector('span');if(slot){slot.className='nav-icon';slot.innerHTML=ICONS[key]||'';}});
@@ -250,58 +317,11 @@ loadDashboard=async function(){
       buyers:(allBuyers.items||[]).filter(x=>provinceOf(x)===province).length
     }));
     $('#dashboard').insertAdjacentHTML('beforeend',provinceCoverage(provinceStats));
-    const executive=await api('/admin/executive-summary').catch(()=>null);
-    if(executive)$('#dashboard').insertAdjacentHTML('beforeend',nationalSummaryPanel(executive));
   }catch{}
   $$('.quick-action').forEach(b=>b.onclick=()=>{const view=b.dataset.jump;showView(view);if(view==='finance')setTimeout(()=>window.openInvoiceModal?.(),350);if(view==='users'&&isCEO())setTimeout(()=>window.openUserModal?.(),350)});
   drawRevenueChart(a.revenue_series||[]);
 };
 function metricCard(label,value,sub,icon,accent='green'){return `<article class="metric metric-${accent}"><span class="metric-icon">${icon}</span><span class="label">${label}</span><strong>${value}</strong><small>${sub}</small><span class="metric-trend">● Live data</span></article>`}
-
-async function openPaymentDetail(id){
-  try{
-    const p=await api(`/admin/payments/${id}`);
-    openDrawer(`<span class="kicker">Finance control</span><h2>${esc(p.reference)}</h2>
-      <div class="detail-grid">
-        ${detail('Payer',p.payer_name)}
-        ${detail('Amount',fmtMoney(p.amount))}
-        ${detail('Method',p.method)}
-        ${detail('Status',p.status)}
-        ${detail('External reference',p.external_reference||'—')}
-        ${detail('Created',new Date(p.created_at).toLocaleString('en-ZA'))}
-        ${detail('Entity',`${p.entity_type} #${p.entity_id}`)}
-        ${detail('Notes',p.notes||'—')}
-      </div>
-      <div class="drawer-actions">
-        ${p.receipt_url?`<button class="btn btn-primary" onclick="downloadFile('${p.receipt_url}','${esc(p.reference)}-receipt.pdf')">Download receipt</button>`:''}
-        <button class="btn btn-secondary" onclick="showView('audit')">View audit trail</button>
-      </div>`);
-  }catch(e){toast(e.message,false)}
-}
-window.openPaymentDetail=openPaymentDetail;
-
-function nationalSummaryPanel(summary){
-  const national=summary.national||{};
-  return `<article class="panel national-summary-panel">
-    <div class="panel-head"><div><span class="kicker">CEO national command</span><h3>South African operating footprint</h3></div><span class="formal-badge">Live national summary</span></div>
-    <div class="national-summary-grid">
-      <div><span>Total farmers</span><strong>${Number(national.farmers||0).toLocaleString('en-ZA')}</strong></div>
-      <div><span>Total buyers</span><strong>${Number(national.buyers||0).toLocaleString('en-ZA')}</strong></div>
-      <div><span>Total orders</span><strong>${Number(national.orders||0).toLocaleString('en-ZA')}</strong></div>
-      <div><span>Verified revenue</span><strong>${fmtMoney(national.paid_revenue||0)}</strong></div>
-      <div><span>Pending approvals</span><strong>${Number(national.pending_approvals||0).toLocaleString('en-ZA')}</strong></div>
-    </div>
-    <div class="province-performance-table">
-      ${table(['Province','Farmers','Buyers','Orders','Revenue'],(summary.provinces||[]).map(x=>[
-        provinceBadge({province:x.province}),
-        `${x.approved_farmers}/${x.farmers}`,
-        `${x.approved_buyers}/${x.buyers}`,
-        Number(x.orders||0).toLocaleString('en-ZA'),
-        fmtMoney(x.revenue||0)
-      ]))}
-    </div>
-  </article>`;
-}
 function provinceCoverage(rows){
   return `<article class="panel province-panel"><div class="panel-head"><div><span class="kicker">National footprint</span><h3>Provincial coverage</h3></div><span class="formal-badge">South Africa · 9 Provinces</span></div><div class="province-grid">${rows.map(x=>`<div class="province-card"><strong>${esc(x.province)}</strong><span>${x.farmers} farmers</span><span>${x.buyers} buyers</span></div>`).join('')}</div></article>`;
 }
@@ -329,15 +349,7 @@ function exportTableCSV(table){const rows=[...table.rows].map(row=>[...row.cells
 const tableObserver=new MutationObserver(()=>enhanceTables(document));tableObserver.observe(document.querySelector('main'),{subtree:true,childList:true});
 
 function setupTheme(){const saved=localStorage.getItem('farmlink_theme');if(saved==='dark')document.body.classList.add('dark');$('#themeToggle').onclick=()=>{document.body.classList.toggle('dark');localStorage.setItem('farmlink_theme',document.body.classList.contains('dark')?'dark':'light')}}
-function setupGlobalSearch(){const overlay=$('#globalSearch'),input=$('#globalSearchInput'),results=$('#globalSearchResults');const open=()=>{overlay.classList.remove('hidden');setTimeout(()=>input.focus(),20)},close=()=>overlay.classList.add('hidden');$('#globalSearchTrigger').onclick=open;overlay.onclick=e=>{if(e.target===overlay)close()};input.oninput=debounce(async()=>{const q=input.value.trim();if(q.length<2){results.innerHTML='<div class="search-hint">Enter at least two characters.</div>';return}results.innerHTML='<div class="search-hint">Searching FarmLink...</div>';try{const resources=['farmers','buyers','orders','memberships'];const [responses,payments,users]=await Promise.all([
-  Promise.all(resources.map(r=>api(`/admin/${r}?q=${encodeURIComponent(q)}&status=all`).catch(()=>({items:[]})))),
-  api('/admin/payments').catch(()=>[]),
-  isCEO()?api('/admin/users').catch(()=>[]):Promise.resolve([])
-]);
-const recordItems=responses.flatMap((r,i)=>(r.items||[]).map(x=>({...x,_resource:resources[i]})));
-const paymentItems=(payments||[]).filter(x=>`${x.reference} ${x.payer_name} ${x.external_reference||''}`.toLowerCase().includes(q.toLowerCase())).map(x=>({...x,_resource:'payments',business_name:x.payer_name}));
-const userItems=(users||[]).filter(x=>`${x.full_name} ${x.email} ${x.job_title}`.toLowerCase().includes(q.toLowerCase())).map(x=>({...x,_resource:'users',business_name:x.full_name,reference:x.email,status:x.is_active?'Approved':'Rejected'}));
-const items=[...recordItems,...paymentItems,...userItems].slice(0,30);results.innerHTML=items.length?items.map(x=>`<div class="search-result" data-resource="${x._resource}" data-id="${x.id}"><div><strong>${esc(nameOf(x))}</strong><span>${esc(x.reference||'')} · ${esc(x._resource)}</span></div>${badge(x.status||'Record')}</div>`).join(''):'<div class="search-hint">No matching records.</div>';results.querySelectorAll('.search-result').forEach(row=>row.onclick=()=>{close();const resource=row.dataset.resource,id=Number(row.dataset.id);showView(resource);if(resource==='payments')setTimeout(()=>openPaymentDetail(id),250);else if(resource!=='users')setTimeout(()=>openRecord(resource,id),250)})}catch(e){results.innerHTML=`<div class="search-hint">${esc(e.message)}</div>`}},280);document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();open()}if(e.key==='Escape')close()})}
+function setupGlobalSearch(){const overlay=$('#globalSearch'),input=$('#globalSearchInput'),results=$('#globalSearchResults');const open=()=>{overlay.classList.remove('hidden');setTimeout(()=>input.focus(),20)},close=()=>overlay.classList.add('hidden');$('#globalSearchTrigger').onclick=open;overlay.onclick=e=>{if(e.target===overlay)close()};input.oninput=debounce(async()=>{const q=input.value.trim();if(q.length<2){results.innerHTML='<div class="search-hint">Enter at least two characters.</div>';return}results.innerHTML='<div class="search-hint">Searching FarmLink...</div>';try{const resources=['farmers','buyers','orders','memberships'];const responses=await Promise.all(resources.map(r=>api(`/admin/${r}?q=${encodeURIComponent(q)}&status=all`).catch(()=>({items:[]}))));const items=responses.flatMap((r,i)=>(r.items||[]).map(x=>({...x,_resource:resources[i]}))).slice(0,30);results.innerHTML=items.length?items.map(x=>`<div class="search-result" data-resource="${x._resource}" data-id="${x.id}"><div><strong>${esc(nameOf(x))}</strong><span>${esc(x.reference||'')} · ${esc(x._resource)}</span></div>${badge(x.status||'Record')}</div>`).join(''):'<div class="search-hint">No matching records.</div>';results.querySelectorAll('.search-result').forEach(row=>row.onclick=()=>{close();showView(row.dataset.resource);setTimeout(()=>openRecord(row.dataset.resource,Number(row.dataset.id)),250)})}catch(e){results.innerHTML=`<div class="search-hint">${esc(e.message)}</div>`}},280);document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();open()}if(e.key==='Escape')close()})}
 async function loadNotificationMenu(){try{const rows=await api('/admin/notifications');const recent=rows.slice(0,8),badgeEl=$('#notificationBadge');badgeEl.textContent=recent.length;badgeEl.classList.toggle('hidden',!recent.length);$('#notificationList').innerHTML=recent.length?recent.map(x=>`<div class="notification-item"><i class="notification-dot"></i><div><strong>${esc(x.subject||x.channel+' notification')}</strong><span>${esc(x.recipient)} · ${fmtDate(x.sent_at||x.created_at)}</span></div></div>`).join(''):'<div class="search-hint">No notifications.</div>'}catch{$('#notificationList').innerHTML='<div class="search-hint">Unable to load notifications.</div>'}}
 function setupNotifications(){const menu=$('#notificationDropdown');$('#notificationToggle').onclick=async()=>{menu.classList.toggle('hidden');if(!menu.classList.contains('hidden'))await loadNotificationMenu()};$('#markNotificationsRead').onclick=()=>{$('#notificationBadge').classList.add('hidden');menu.classList.add('hidden')};document.addEventListener('click',e=>{if(!e.target.closest('.notification-menu'))menu.classList.add('hidden')})}
 function setupShortcuts(){document.addEventListener('keydown',e=>{if(e.target.matches('input,textarea,select'))return;if(e.key.toLowerCase()==='o')showView('orders');if(e.key.toLowerCase()==='i')showView('finance')})}
