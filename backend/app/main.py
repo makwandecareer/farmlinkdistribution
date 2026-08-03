@@ -172,7 +172,7 @@ def user_audit(user_id:int, limit:int=Query(100,le=500), db:Session=Depends(get_
     rows=db.scalars(
         select(AuditLog).where(
             or_(
-                AuditLog.actor_user_id==user_id,
+                AuditLog.actor_id==user_id,
                 ((AuditLog.entity_type=="user") & (AuditLog.entity_id==user_id))
             )
         ).order_by(desc(AuditLog.created_at)).limit(limit)
