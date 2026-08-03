@@ -1,0 +1,73 @@
+FarmLink Paystack Production Integration
+
+WHAT THIS PACKAGE DOES
+----------------------
+1. Initializes Paystack transactions from the FastAPI backend.
+2. Determines the charge amount on the server, never from browser input.
+3. Redirects customers to Paystack-hosted checkout.
+4. Verifies reference, amount, currency and transaction status server-side.
+5. Validates Paystack webhooks with HMAC SHA-512.
+6. Returns webhook HTTP 200 quickly and verifies in a background task.
+7. Creates/updates FarmLink Payment records automatically.
+8. Updates invoices, paid memberships and paid orders.
+9. Adds a responsive payment-success callback page.
+10. Connects paid membership applications to secure checkout.
+
+IMPORTANT SAFETY RULE
+---------------------
+Use Paystack TEST keys first. Do not switch to live keys or accept real money
+until initialization, callback, webhook, duplicate handling and admin payment
+records have all been tested end-to-end.
+
+FILES TO COPY
+-------------
+backend/app/paystack.py
+backend/app/main.py
+backend/app/operations.py
+backend/app/config.py
+backend/tests/test_paystack_integration.py
+frontend/script.js
+frontend/payment-success.html
+frontend/payment-success.js
+.env.paystack.example
+
+RENDER ENVIRONMENT VARIABLES
+----------------------------
+PAYSTACK_PUBLIC_KEY=pk_test_...
+PAYSTACK_SECRET_KEY=sk_test_...
+PAYSTACK_CALLBACK_URL=https://farmlinkdistribution-1ndv.onrender.com/payment-success.html
+PAYSTACK_CHANNELS=card,bank,bank_transfer,eft,capitec_pay
+PUBLIC_BASE_URL=https://farmlinkdistribution-1ndv.onrender.com
+CORS_ORIGINS=https://farmlinkdistribution-1ndv.onrender.com
+
+PAYSTACK DASHBOARD WEBHOOK URL
+------------------------------
+https://farmlinkdistribution.onrender.com/api/payments/paystack/webhook
+
+DEPLOYMENT
+----------
+git add backend frontend .env.paystack.example
+git commit -m "Integrate secure Paystack payments"
+git push origin main
+
+VERIFY IN SWAGGER
+-----------------
+https://farmlinkdistribution.onrender.com/docs
+
+Look for:
+POST /api/payments/paystack/initialize
+GET  /api/payments/paystack/verify/{reference}
+GET  /api/payments/paystack/status/{reference}
+POST /api/payments/paystack/webhook
+
+TEST FLOW
+---------
+1. Keep Paystack in Test Mode.
+2. Submit a paid membership application.
+3. Accept the prompt to continue to Paystack.
+4. Complete a Paystack test payment.
+5. Confirm payment-success.html shows Payment verified.
+6. Confirm Payment Records and Finance Centre show the payment.
+7. Confirm the webhook receives HTTP 200.
+8. Test cancellation and failed payment.
+9. Only after all checks pass, replace test keys with live keys.

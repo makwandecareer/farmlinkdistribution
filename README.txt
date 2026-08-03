@@ -1,16 +1,23 @@
-FarmLink Backend — Audit Trail Route Fix
+FarmLink Backend — Payment Records Route Fix
 
-Root cause:
-The endpoint GET /api/admin/audit was declared after GET /api/admin/{resource}.
-Because FastAPI/Starlette resolves routes in declaration order, "audit" was
-captured as the generic resource value and returned 404.
+The Payment Records screen returned 404 because the static route:
 
-Fix:
-The audit endpoint is moved above the generic resource route. The previous
-administrator-users route fix is retained.
+    GET /api/admin/payments
 
-Install:
-1. Replace backend/app/main.py with the corrected file.
-2. Optionally add backend/tests/test_admin_static_route_order.py.
-3. Commit and push.
-4. Wait for the Render backend service to redeploy.
+was declared below the generic route:
+
+    GET /api/admin/{resource}
+
+FastAPI/Starlette resolves routes in declaration order, so "payments" was
+captured as the generic resource name.
+
+This patch moves all payment routes above the generic resource routes:
+
+    GET   /api/admin/payments
+    POST  /api/admin/payments
+    PATCH /api/admin/payments/{payment_id}
+
+The previous Users and Audit route fixes are retained.
+
+Replace backend/app/main.py, commit, push, and wait for the Render backend
+service to redeploy.
