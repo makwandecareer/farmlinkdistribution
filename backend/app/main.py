@@ -408,6 +408,211 @@ def public_marketplace_summary(db: Session = Depends(get_db)):
         "approved_buyers": approved_buyers,
         "available_trays": int(available_trays),
     }
+
+# FARMLINK_MARKETPLACE_BACKEND_V1
+@app.get("/api/marketplace/suppliers/{reference}")
+def public_supplier_profile(reference: str, db: Session = Depends(get_db)):
+    farmer = db.scalar(
+        select(Farmer).where(
+            Farmer.reference == reference,
+            Farmer.status == "Approved",
+        )
+    )
+    if not farmer:
+        raise HTTPException(404, "Approved supplier profile not found")
+
+    lots = db.scalars(
+        select(InventoryLot).where(
+            InventoryLot.farmer_id == farmer.id,
+            InventoryLot.status == "Available",
+        ).order_by(desc(InventoryLot.updated_at)).limit(30)
+    ).all()
+
+    return {
+        "supplier": {
+            "reference": farmer.reference,
+            "farm_name": farmer.farm_name,
+            "location": farmer.location,
+            "producer_type": farmer.producer_type,
+            "weekly_capacity": farmer.weekly_capacity,
+            "egg_sizes": farmer.egg_sizes,
+            "packaging": farmer.packaging,
+            "delivery_capability": farmer.delivery_capability,
+            "updated_at": farmer.updated_at,
+        },
+        "inventory": [
+            {
+                "reference": lot.reference,
+                "egg_size": lot.egg_size,
+                "packaging": lot.packaging,
+                "trays_available": lot.trays_available,
+                "unit_price": float(lot.unit_price) if lot.unit_price is not None else None,
+                "available_from": lot.available_from,
+                "expiry_date": lot.expiry_date,
+                "updated_at": lot.updated_at,
+            }
+            for lot in lots
+        ],
+        "privacy": "Private supplier contact information is not published.",
+    }
+
+
+@app.get("/api/marketplace/inventory")
+def public_inventory(
+    location: str | None = Query(None, max_length=120),
+    egg_size: str | None = Query(None, max_length=80),
+    limit: int = Query(24, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    query = (
+        select(InventoryLot, Farmer)
+        .join(Farmer, Farmer.id == InventoryLot.farmer_id)
+        .where(
+            InventoryLot.status == "Available",
+            InventoryLot.trays_available > 0,
+            Farmer.status == "Approved",
+        )
+    )
+
+    if location:
+        query = query.where(Farmer.location.ilike(f"%{location.strip()}%"))
+
+    if egg_size:
+        query = query.where(InventoryLot.egg_size.ilike(f"%{egg_size.strip()}%"))
+
+    rows = db.execute(
+        query.order_by(desc(InventoryLot.updated_at)).limit(limit)
+    ).all()
+
+    return {
+        "items": [
+            {
+                "inventory_reference": lot.reference,
+                "supplier_reference": farmer.reference,
+                "farm_name": farmer.farm_name,
+                "location": farmer.location,
+                "egg_size": lot.egg_size,
+                "packaging": lot.packaging,
+                "trays_available": lot.trays_available,
+                "unit_price": float(lot.unit_price) if lot.unit_price is not None else None,
+                "available_from": lot.available_from,
+                "updated_at": lot.updated_at,
+            }
+            for lot, farmer in rows
+        ]
+    }
+
+
+@app.post("/api/marketplace/quote-requests", status_code=201)
+async def public_quote_request(request: Request, db: Session = Depends(get_db)):
+    data = await request.json()
+
+    required_fields = [
+        "business_name",
+        "contact_person",
+        "phone",
+        "email",
+        "customer_type",
+        "delivery_area",
+        "product",
+        "packaging",
+        "quantity",
+        "frequency",
+        "required_date",
+    ]
+
+    missing = [
+        field
+        for field in required_fields
+        if not str(data.get(field, "")).strip()
+    ]
+
+    if missing:
+        raise HTTPException(
+            422,
+            f"Missing required fields: {', '.join(missing)}",
+        )
+
+    try:
+        required_date = datetime.strptime(
+            str(data["required_date"]),
+            "%Y-%m-%d",
+        ).date()
+    except ValueError:
+        raise HTTPException(
+            422,
+            "required_date must use YYYY-MM-DD",
+        )
+
+    supplier_reference = str(data.get("supplier_reference", "")).strip() or None
+    inventory_reference = str(data.get("inventory_reference", "")).strip() or None
+
+    if supplier_reference:
+        supplier = db.scalar(
+            select(Farmer).where(
+                Farmer.reference == supplier_reference,
+                Farmer.status == "Approved",
+            )
+        )
+        if not supplier:
+            raise HTTPException(404, "Selected supplier is unavailable")
+
+    notes = str(data.get("notes", "")).strip()
+    source_notes = [
+        "Submitted through public marketplace quotation workflow.",
+        f"Product requested: {str(data['product']).strip()}",
+    ]
+    if supplier_reference:
+        source_notes.append(f"Preferred supplier: {supplier_reference}")
+    if inventory_reference:
+        source_notes.append(f"Inventory reference: {inventory_reference}")
+    if notes:
+        source_notes.append(f"Buyer notes: {notes}")
+
+    order = Order(
+        reference=make_reference("ORD"),
+        business_name=str(data["business_name"]).strip(),
+        contact_person=str(data["contact_person"]).strip(),
+        phone=str(data["phone"]).strip(),
+        email=str(data["email"]).strip().lower(),
+        customer_type=str(data["customer_type"]).strip(),
+        delivery_area=str(data["delivery_area"]).strip(),
+        egg_size=str(data["product"]).strip(),
+        packaging=str(data["packaging"]).strip(),
+        quantity=str(data["quantity"]).strip(),
+        frequency=str(data["frequency"]).strip(),
+        required_date=required_date,
+        notes="\n".join(source_notes),
+        status="Pending",
+    )
+
+    db.add(order)
+    db.flush()
+
+    audit(
+        db,
+        None,
+        "Submitted marketplace quotation request",
+        "order",
+        order.id,
+        {
+            "reference": order.reference,
+            "supplier_reference": supplier_reference,
+            "inventory_reference": inventory_reference,
+        },
+        request.client.host if request.client else None,
+    )
+
+    db.commit()
+    db.refresh(order)
+
+    return {
+        "reference": order.reference,
+        "status": order.status,
+        "message": "Your quotation request has been submitted for commercial review.",
+    }
+
+
 @app.get("/api/admin/{resource}")
 def list_records(resource: str, q: str|None=None, status: str|None=None, limit:int=Query(100,le=500), offset:int=0, db:Session=Depends(get_db), user:User=Depends(current_user)):
     model=MODEL_MAP.get(resource)
