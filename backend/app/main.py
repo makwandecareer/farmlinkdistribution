@@ -1,4 +1,4 @@
-from contextlib import asynccontextmanager
+﻿from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Type
@@ -10,7 +10,7 @@ from sqlalchemy import select, func, or_, desc
 from sqlalchemy.orm import Session
 from .config import get_settings
 from .database import Base, engine, get_db, SessionLocal
-from .models import User, UserRole, Farmer, Buyer, Order, MembershipApplication, Payment, AuditLog, LoginAttempt
+from .models import User, UserRole, Farmer, Buyer, Order, MembershipApplication, Payment, AuditLog, LoginAttempt, InventoryLot
 from .schemas import LoginIn, ChangePasswordIn, UserCreate, UserUpdate, UserPasswordReset, UserOut, TokenOut, FarmerCreate, BuyerCreate, OrderCreate, MembershipCreate, RecordUpdate, PaymentCreate, PaymentUpdate
 from .security import hash_password, verify_password, create_access_token
 from .deps import current_user, ceo_user
@@ -325,6 +325,89 @@ def executive_summary(db:Session=Depends(get_db), user:User=Depends(current_user
         }
     }
 
+
+# FARMLINK_PUBLIC_MARKETPLACE_V1
+@app.get("/api/marketplace/suppliers")
+def public_marketplace_suppliers(
+    location: str | None = Query(None, max_length=120),
+    product: str | None = Query(None, max_length=120),
+    limit: int = Query(6, ge=1, le=24),
+    db: Session = Depends(get_db),
+):
+    """
+    Privacy-safe public supplier discovery endpoint.
+    Only approved suppliers are returned. Private contact details and internal
+    notes are never exposed.
+    """
+    query = select(Farmer).where(Farmer.status == "Approved")
+
+    if location:
+        term = f"%{location.strip()}%"
+        query = query.where(Farmer.location.ilike(term))
+
+    if product:
+        term = f"%{product.strip()}%"
+        query = query.where(
+            or_(
+                Farmer.producer_type.ilike(term),
+                Farmer.egg_sizes.ilike(term),
+                Farmer.packaging.ilike(term),
+                Farmer.notes.ilike(term),
+            )
+        )
+
+    farmers = db.scalars(
+        query.order_by(desc(Farmer.updated_at), desc(Farmer.created_at)).limit(limit)
+    ).all()
+
+    results = []
+    for farmer in farmers:
+        available_trays = db.scalar(
+            select(func.coalesce(func.sum(InventoryLot.trays_available), 0)).where(
+                InventoryLot.farmer_id == farmer.id,
+                InventoryLot.status == "Available",
+            )
+        ) or 0
+
+        results.append({
+            "id": farmer.id,
+            "reference": farmer.reference,
+            "farm_name": farmer.farm_name,
+            "location": farmer.location,
+            "producer_type": farmer.producer_type,
+            "weekly_capacity": farmer.weekly_capacity,
+            "egg_sizes": farmer.egg_sizes,
+            "packaging": farmer.packaging,
+            "delivery_capability": farmer.delivery_capability,
+            "available_trays": int(available_trays),
+            "updated_at": farmer.updated_at,
+        })
+
+    return {
+        "items": results,
+        "count": len(results),
+        "filters": {"location": location, "product": product},
+        "privacy": "Only approved public business information is displayed.",
+    }
+
+@app.get("/api/marketplace/summary")
+def public_marketplace_summary(db: Session = Depends(get_db)):
+    approved_farmers = db.scalar(
+        select(func.count()).select_from(Farmer).where(Farmer.status == "Approved")
+    ) or 0
+    approved_buyers = db.scalar(
+        select(func.count()).select_from(Buyer).where(Buyer.status == "Approved")
+    ) or 0
+    available_trays = db.scalar(
+        select(func.coalesce(func.sum(InventoryLot.trays_available), 0)).where(
+            InventoryLot.status == "Available"
+        )
+    ) or 0
+    return {
+        "approved_farmers": approved_farmers,
+        "approved_buyers": approved_buyers,
+        "available_trays": int(available_trays),
+    }
 @app.get("/api/admin/{resource}")
 def list_records(resource: str, q: str|None=None, status: str|None=None, limit:int=Query(100,le=500), offset:int=0, db:Session=Depends(get_db), user:User=Depends(current_user)):
     model=MODEL_MAP.get(resource)
@@ -358,4 +441,5 @@ def update_record(resource:str, record_id:int, data:RecordUpdate, request:Reques
             if not assignee or not assignee.is_active: raise HTTPException(400,"Invalid assignee")
         old=getattr(rec,k,None); setattr(rec,k,v); changes[k]={"from":str(old),"to":str(v)}
     audit(db,user,"Updated record",resource[:-1],rec.id,{"reference":rec.reference,"changes":changes},request.client.host if request.client else None); db.commit(); db.refresh(rec); return serialize(rec)
+
 
