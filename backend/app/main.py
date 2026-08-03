@@ -16,7 +16,6 @@ from .security import hash_password, verify_password, create_access_token
 from .deps import current_user, ceo_user
 from .utils import make_reference, audit
 from .operations import router as operations_router
-from .paystack import router as paystack_router
 
 settings = get_settings()
 
@@ -33,7 +32,6 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title=settings.app_name, version="1.0.0", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origin_list, allow_credentials=True, allow_methods=["*"] , allow_headers=["*"])
 app.include_router(operations_router)
-app.include_router(paystack_router)
 
 @app.get("/api/health")
 def health(): return {"status":"ok","service":settings.app_name,"environment":settings.environment}
