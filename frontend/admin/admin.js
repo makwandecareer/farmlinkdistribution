@@ -36,11 +36,19 @@ function provinceBadge(record){
 }
 const toast=(m,ok=true)=>{const t=$('#toast');t.textContent=m;t.style.background=ok?'#0d6547':'#a82e2e';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500)};
 const headers=()=>({'Content-Type':'application/json',...(token?{'Authorization':`Bearer ${token}`}:{})});
+const normalizedRole=()=>String(currentUser?.role||'').trim().toUpperCase();
+const isCEO=()=>normalizedRole()==='CEO';
+function requireCEO(){
+  if(isCEO())return true;
+  toast('Only the CEO account can manage administrators.',false);
+  return false;
+}
+
 async function api(path,opts={}){const r=await fetch(API+path,{...opts,headers:{...headers(),...(opts.headers||{})}});if(r.status===401&&token){logout();throw new Error('Session expired')}const ct=r.headers.get('content-type')||'';const d=r.status===204?null:ct.includes('json')?await r.json():await r.text();if(!r.ok)throw new Error(d?.detail||d||'Request failed');return d}
 function logout(){localStorage.removeItem('farmlink_token');token='';currentUser=null;$('#app').classList.add('hidden');$('#loginScreen').classList.remove('hidden')}
 $('#logout').onclick=logout;
 $('#loginForm').onsubmit=async e=>{e.preventDefault();$('#loginError').textContent='';try{const d=await api('/auth/login',{method:'POST',body:JSON.stringify({email:$('#loginEmail').value,password:$('#loginPassword').value})});token=d.access_token;localStorage.setItem('farmlink_token',token);currentUser=d.user;await start()}catch(err){$('#loginError').textContent=err.message}};
-async function start(){try{currentUser=currentUser||await api('/auth/me');$('#loginScreen').classList.add('hidden');$('#app').classList.remove('hidden');$('#sideName').textContent=currentUser.full_name;$('#sideRole').textContent=currentUser.job_title;const initials=currentUser.full_name.split(' ').map(x=>x[0]).slice(0,2).join('');$('#avatar').textContent=initials;$('#topAvatar').textContent=initials;$('#topName').textContent=currentUser.full_name;$('#topRole').textContent=`${currentUser.job_title||'Administrator'} · ${String(currentUser.role||'ADMIN').toUpperCase()}`;const isCEO=String(currentUser.role||'').trim().toUpperCase()==='CEO';$('#usersNav').style.display=isCEO?'flex':'none';if(currentUser.must_change_password)setTimeout(openPasswordModal,300);await showView('dashboard')}catch(e){logout()}}
+async function start(){try{currentUser=currentUser||await api('/auth/me');$('#loginScreen').classList.add('hidden');$('#app').classList.remove('hidden');$('#sideName').textContent=currentUser.full_name;$('#sideRole').textContent=currentUser.job_title;const initials=currentUser.full_name.split(' ').map(x=>x[0]).slice(0,2).join('');$('#avatar').textContent=initials;$('#topAvatar').textContent=initials;$('#topName').textContent=currentUser.full_name;$('#topRole').textContent=`${currentUser.job_title||'Administrator'} · ${String(currentUser.role||'ADMIN').toUpperCase()}`;$('#usersNav').style.display=isCEO()?'flex':'none';if(currentUser.must_change_password)setTimeout(openPasswordModal,300);await showView('dashboard')}catch(e){logout()}}
 const titles={dashboard:'Executive overview',farmers:'Farmer applications',buyers:'Business buyers',orders:'Bulk orders',memberships:'Memberships & marketing',inventory:'Inventory management',logistics:'Logistics & dispatch',quality:'Quality control',finance:'Finance centre',payments:'Payment records',notifications:'Communications',documents:'Document centre',users:'Administrator management',audit:'Audit trail'};
 $$('#nav button').forEach(b=>b.onclick=()=>showView(b.dataset.view));$('#refresh').onclick=()=>showView($('.view.active').id);
 async function showView(name){$$('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name));$$('.view').forEach(v=>v.classList.toggle('active',v.id===name));$('#pageTitle').textContent=titles[name]||name;const loaders={dashboard:loadDashboard,farmers:()=>loadResource('farmers'),buyers:()=>loadResource('buyers'),orders:()=>loadResource('orders'),memberships:()=>loadResource('memberships'),inventory:loadInventory,logistics:loadLogistics,quality:loadQuality,finance:loadFinance,payments:loadPayments,notifications:loadNotifications,documents:loadDocuments,users:loadUsers,audit:loadAudit};try{await loaders[name]?.()}catch(e){toast(e.message,false)}}
@@ -75,9 +83,107 @@ async function loadNotifications(){const rows=await api('/admin/notifications');
 window.openNotificationModal=()=>openForm('Create notification',`<label>Channel<select id="nChannel"><option>Email</option><option>SMS</option><option>WhatsApp</option></select></label><label>Recipient<input id="nRecipient" required></label><label class="full">Subject<input id="nSubject"></label><label class="full">Message<textarea id="nMessage" rows="6" required></textarea></label>`,async()=>{await api('/admin/notifications',{method:'POST',body:JSON.stringify({channel:$('#nChannel').value,recipient:$('#nRecipient').value,subject:$('#nSubject').value||null,message:$('#nMessage').value})});loadNotifications()})
 async function loadDocuments(){const rows=await api('/admin/documents');$('#documents').innerHTML=pageHead('Secure records','Document centre','Store supporting documents in PostgreSQL with authenticated download access.',`<button class="btn btn-primary" onclick="openDocumentModal()">Upload document</button>`)+`<div class="panel table-wrap">${rows.length?table(['Reference','Type','Entity','Filename','Size','Uploaded',''],rows.map(x=>[esc(x.reference),esc(x.document_type),`${esc(x.entity_type)} #${x.entity_id}`,esc(x.filename),`${Math.ceil(x.file_size/1024)} KB`,fmtDate(x.created_at),`<button class="link-btn" onclick="downloadFile('/admin/documents/${x.id}/download','${esc(x.filename)}')">Download</button>`])):empty()}</div>`}
 window.openDocumentModal=()=>{openModal();$('#modalBody').innerHTML=`<span class="kicker">Secure storage</span><h2>Upload document</h2><form id="docForm" class="form-grid"><label>Entity type<select id="docType"><option>farmer</option><option>buyer</option><option>order</option><option>payment</option></select></label><label>Entity ID<input id="docEntity" type="number" min="1" required></label><label class="full">Document type<input id="docLabel" placeholder="Proof of payment, CIPC, certificate..." required></label><label class="full">File<input id="docFile" type="file" required></label><div class="form-actions full"><button class="btn btn-primary">Upload securely</button></div></form>`;$('#docForm').onsubmit=async e=>{e.preventDefault();const fd=new FormData();fd.append('entity_type',$('#docType').value);fd.append('entity_id',$('#docEntity').value);fd.append('document_type',$('#docLabel').value);fd.append('file',$('#docFile').files[0]);const r=await fetch(API+'/admin/documents',{method:'POST',headers:{Authorization:`Bearer ${token}`},body:fd});if(!r.ok)throw new Error((await r.json()).detail||'Upload failed');toast('Document uploaded');closeModal();loadDocuments()}}
-async function loadUsers(){if(currentUser.role!=='CEO')return;const users=await api('/admin/users');$('#users').innerHTML=pageHead('Access governance','Administrator management','CEO-controlled permissions for Finance, Operations, Logistics and Quality Control.',`<button class="btn btn-primary" onclick="openUserModal()">Add administrator</button>`)+`<div class="panel table-wrap">${table(['Administrator','Role','Status','Last login',''],users.map(u=>[`<strong>${esc(u.full_name)}</strong><div class="ref">${esc(u.email)}</div>`,`${esc(u.job_title)}<div class="ref">${esc(u.role)}</div>`,badge(u.is_active?'Approved':'Rejected'),u.last_login_at?new Date(u.last_login_at).toLocaleString('en-ZA'):'Never',u.role==='CEO'?'<span class="ref">Protected owner</span>':`<button class="link-btn" onclick="toggleUser(${u.id},${!u.is_active})">${u.is_active?'Suspend':'Activate'}</button> <button class="link-btn" onclick="removeUser(${u.id})">Remove</button>`]))}</div>`}
-window.openUserModal=()=>openForm('Add administrator',`<label>Full name<input id="uName" required></label><label>Email<input id="uEmail" type="email" required></label><label>Job title<input id="uTitle" required></label><label>Role<select id="uRole"><option>ADMIN</option><option>FINANCE</option><option>OPERATIONS</option><option>LOGISTICS</option><option>QUALITY</option></select></label><label class="full">Temporary password<input id="uPass" type="password" minlength="10" required></label>`,async()=>{await api('/admin/users',{method:'POST',body:JSON.stringify({full_name:$('#uName').value,email:$('#uEmail').value,job_title:$('#uTitle').value,role:$('#uRole').value,temporary_password:$('#uPass').value})});loadUsers()});
-window.toggleUser=async(id,active)=>{await api(`/admin/users/${id}/status?active=${active}`,{method:'PATCH'});toast('Access status updated');loadUsers()};window.removeUser=async id=>{if(confirm('Permanently remove this administrator?')){await api(`/admin/users/${id}`,{method:'DELETE'});toast('Administrator removed');loadUsers()}};
+async function loadUsers(){
+  if(!requireCEO()){
+    $('#users').innerHTML=pageHead(
+      'Access governance',
+      'Administrator management',
+      'This section is restricted to the protected CEO account.',
+      ''
+    )+`<div class="panel"><div class="empty"><strong>CEO authorisation required</strong><p>Sign in with the CEO account to add, activate, suspend or remove administrators.</p></div></div>`;
+    return;
+  }
+
+  const users=await api('/admin/users');
+  $('#users').innerHTML=
+    pageHead(
+      'Access governance',
+      'Administrator management',
+      'Create administrators, assign departmental roles and control access from one protected CEO workspace.',
+      `<button class="btn btn-primary admin-add-btn" id="addAdministratorBtn" type="button">+ Add administrator</button>`
+    )+
+    `<div class="admin-summary">
+      <article><span>Total administrators</span><strong>${users.length}</strong></article>
+      <article><span>Active accounts</span><strong>${users.filter(u=>u.is_active).length}</strong></article>
+      <article><span>Suspended accounts</span><strong>${users.filter(u=>!u.is_active).length}</strong></article>
+      <article><span>Protected owner</span><strong>1 CEO</strong></article>
+    </div>
+    <div class="panel table-wrap">${
+      users.length
+        ? table(
+            ['Administrator','Department & role','Account status','Last login','Actions'],
+            users.map(u=>[
+              `<div class="admin-identity"><span class="admin-avatar">${esc((u.full_name||'A').split(' ').map(x=>x[0]).slice(0,2).join(''))}</span><div><strong>${esc(u.full_name)}</strong><div class="ref">${esc(u.email)}</div></div></div>`,
+              `<strong>${esc(u.job_title||'Administrator')}</strong><div class="ref">${esc(u.role)}</div>`,
+              badge(u.is_active?'Approved':'Rejected'),
+              u.last_login_at?new Date(u.last_login_at).toLocaleString('en-ZA'):'Never',
+              String(u.role||'').toUpperCase()==='CEO'
+                ? '<span class="protected-owner">Protected CEO account</span>'
+                : `<div class="row-actions">
+                    <button class="link-btn" onclick="toggleUser(${u.id},${!u.is_active})">${u.is_active?'Suspend':'Activate'}</button>
+                    <button class="link-btn danger-action" onclick="removeUser(${u.id})">Remove</button>
+                   </div>`
+            ])
+          )
+        : empty('No administrator accounts have been created.')
+    }</div>`;
+
+  $('#addAdministratorBtn').onclick=openUserModal;
+}
+
+window.openUserModal=()=>{
+  if(!requireCEO())return;
+  openForm(
+    'Add administrator',
+    `<label>Full name<input id="uName" required autocomplete="name" placeholder="Administrator full name"></label>
+     <label>Email address<input id="uEmail" type="email" required autocomplete="email" placeholder="name@farmlink.co.za"></label>
+     <label>Job title<input id="uTitle" required placeholder="Finance Administrator"></label>
+     <label>Department role
+       <select id="uRole" required>
+         <option value="ADMIN">General Administration</option>
+         <option value="FINANCE">Finance</option>
+         <option value="OPERATIONS">Operations</option>
+         <option value="LOGISTICS">Logistics</option>
+         <option value="QUALITY">Quality Control</option>
+       </select>
+     </label>
+     <label class="full">Temporary password<input id="uPass" type="password" minlength="10" required autocomplete="new-password" placeholder="Minimum 10 characters"></label>
+     <div class="full admin-security-note">The administrator will be required to change this temporary password after first login.</div>`,
+    async()=>{
+      const payload={
+        full_name:$('#uName').value.trim(),
+        email:$('#uEmail').value.trim().toLowerCase(),
+        job_title:$('#uTitle').value.trim(),
+        role:$('#uRole').value,
+        temporary_password:$('#uPass').value
+      };
+      const created=await api('/admin/users',{method:'POST',body:JSON.stringify(payload)});
+      toast(`${created.full_name} added successfully`);
+      await loadUsers();
+    }
+  );
+};
+
+window.toggleUser=async(id,active)=>{
+  if(!requireCEO())return;
+  const action=active?'activate':'suspend';
+  if(!confirm(`Are you sure you want to ${action} this administrator?`))return;
+  try{
+    await api(`/admin/users/${id}/status?active=${active}`,{method:'PATCH'});
+    toast(`Administrator ${active?'activated':'suspended'}`);
+    await loadUsers();
+  }catch(err){toast(err.message,false)}
+};
+
+window.removeUser=async id=>{
+  if(!requireCEO())return;
+  if(!confirm('Permanently remove this administrator? This action cannot be undone.'))return;
+  try{
+    await api(`/admin/users/${id}`,{method:'DELETE'});
+    toast('Administrator removed');
+    await loadUsers();
+  }catch(err){toast(err.message,false)}
+};
 async function loadAudit(){const rows=await api('/admin/audit?limit=300');$('#audit').innerHTML=pageHead('Governance','Audit trail','Chronological record of access, approvals and operational decisions.','')+`<div class="panel table-wrap">${rows.length?table(['Date','Actor','Action','Entity'],rows.map(r=>[new Date(r.created_at).toLocaleString('en-ZA'),esc(r.actor_name),esc(r.action),`${esc(r.entity_type)}${r.entity_id?' #'+r.entity_id:''}`])):empty()}</div>`}
 window.downloadFile=async(path,name)=>{try{const r=await fetch(API+path,{headers:{Authorization:`Bearer ${token}`}});if(!r.ok)throw new Error('Download failed');const blob=await r.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name||'download';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){toast(e.message,false)}};
 function pageHead(k,t,d,a=''){return `<div class="page-head"><div><span class="kicker">${k}</span><h2>${t}</h2><p class="muted">${d}</p></div><div>${a}</div></div>`}
@@ -169,7 +275,7 @@ loadDashboard=async function(){
     }));
     $('#dashboard').insertAdjacentHTML('beforeend',provinceCoverage(provinceStats));
   }catch{}
-  $$('.quick-action').forEach(b=>b.onclick=()=>{const view=b.dataset.jump;showView(view);if(view==='finance')setTimeout(()=>window.openInvoiceModal?.(),350);if(view==='users')setTimeout(()=>window.openUserModal?.(),350)});
+  $$('.quick-action').forEach(b=>b.onclick=()=>{const view=b.dataset.jump;showView(view);if(view==='finance')setTimeout(()=>window.openInvoiceModal?.(),350);if(view==='users'&&isCEO())setTimeout(()=>window.openUserModal?.(),350)});
   drawRevenueChart(a.revenue_series||[]);
 };
 function metricCard(label,value,sub,icon,accent='green'){return `<article class="metric metric-${accent}"><span class="metric-icon">${icon}</span><span class="label">${label}</span><strong>${value}</strong><small>${sub}</small><span class="metric-trend">● Live data</span></article>`}
