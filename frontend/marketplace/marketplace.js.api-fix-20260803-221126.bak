@@ -1,4 +1,4 @@
-const API=(window.FARMLINK_API_URL||"https://farmlinkdistribution-api.onrender.com").replace(/\/$/,"")+"/api";
+const API=(window.FARMLINK_API_URL||"https://farmlinkdistribution.onrender.com").replace(/\/$/,"")+"/api";
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 const money=v=>v===null||v===undefined?"Request quotation":new Intl.NumberFormat("en-ZA",{style:"currency",currency:"ZAR"}).format(v);
 async function api(path,options={}){const r=await fetch(API+path,{headers:{"Content-Type":"application/json","Accept":"application/json",...(options.headers||{})},...options});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.detail||"Request failed");return d}
