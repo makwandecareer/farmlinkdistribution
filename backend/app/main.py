@@ -1,4 +1,4 @@
-﻿from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Type
@@ -30,8 +30,7 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(title=settings.app_name, version="1.0.0", lifespan=lifespan)
-# Explicit production origins are merged with environment configuration.
-FARMLINK_PRODUCTION_ORIGINS = {
+PRODUCTION_CORS_ORIGINS = {
     "https://www.farmlinkdistribution.co.za",
     "https://farmlinkdistribution.co.za",
     "https://farmlinkdistribution-1ndv.onrender.com",
@@ -40,12 +39,14 @@ FARMLINK_PRODUCTION_ORIGINS = {
     "http://localhost:5173",
     "http://localhost:8000",
 }
+
 configured_origins = {
     str(origin).strip().rstrip("/")
     for origin in (settings.cors_origin_list or [])
     if str(origin).strip()
 }
-allowed_origins = sorted(FARMLINK_PRODUCTION_ORIGINS | configured_origins)
+
+allowed_origins = sorted(PRODUCTION_CORS_ORIGINS | configured_origins)
 
 app.add_middleware(
     CORSMiddleware,
