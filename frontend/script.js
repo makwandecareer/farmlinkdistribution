@@ -131,7 +131,69 @@ async function submit(endpoint, payload, form) {
 get('farmerForm')?.addEventListener('submit', e => { e.preventDefault(); submit('/public/farmers', {farm_name:value('farmName'),contact_person:value('farmerContact'),phone:value('farmerPhone'),email:value('farmerEmail')||null,location:value('farmLocation'),producer_type:value('producerType'),weekly_capacity:Number(value('weeklyCapacity')),egg_sizes:value('farmerEggSizes'),packaging:value('farmerPackaging')||null,delivery_capability:value('deliveryCapability'),notes:value('farmerNotes')||null}, e.currentTarget); });
 get('buyerForm')?.addEventListener('submit', e => { e.preventDefault(); submit('/public/buyers', {business_name:value('buyerBusiness'),contact_person:value('buyerContact'),phone:value('buyerPhone'),email:value('buyerEmail'),category:value('buyerType'),location:value('buyerLocation'),weekly_volume:value('buyerVolume'),egg_size:value('buyerEggSize')||null,packaging:value('buyerPackaging')||null,frequency:value('buyerFrequency'),notes:value('buyerNotes')||null}, e.currentTarget); });
 get('orderForm')?.addEventListener('submit', e => { e.preventDefault(); submit('/public/orders', {business_name:value('businessName'),contact_person:value('contactPerson'),phone:value('phone'),email:value('email')||null,customer_type:value('customerType'),delivery_area:value('location'),egg_size:value('eggSize'),packaging:value('packaging'),quantity:value('quantity'),frequency:value('frequency'),required_date:value('requiredDate'),notes:value('notes')||null}, e.currentTarget); });
-get('membershipForm')?.addEventListener('submit', e => { e.preventDefault(); submit('/public/memberships', {applicant_type:value('membershipApplicantType'),selected_service:value('membershipPlan'),business_name:value('membershipBusiness'),contact_person:value('membershipContact'),phone:value('membershipPhone'),email:value('membershipEmail'),location:value('membershipLocation'),preferred_payment_method:value('membershipPayment'),notes:value('membershipNotes')||null}, e.currentTarget); });
+const ONLINE_MEMBERSHIP_PLANS = new Set([
+  'Premium Farmer — R99/month',
+  'Premium Buyer — R199/month',
+  'Bronze Marketing — R99',
+  'Silver Marketing — R249',
+  'Gold Marketing — R499'
+]);
+
+async function initializePaystackPayment(entityType, entityId, email, payerName) {
+  const response = await fetch(API + '/payments/paystack/initialize', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      entity_type: entityType,
+      entity_id: entityId,
+      payer_email: email,
+      payer_name: payerName
+    })
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.detail || 'Could not start secure payment');
+  if (!data.authorization_url) throw new Error('Paystack did not return a checkout URL');
+  window.location.assign(data.authorization_url);
+}
+
+get('membershipForm')?.addEventListener('submit', async e => {
+  e.preventDefault();
+  const form = e.currentTarget;
+  const payload = {
+    applicant_type:value('membershipApplicantType'),
+    selected_service:value('membershipPlan'),
+    business_name:value('membershipBusiness'),
+    contact_person:value('membershipContact'),
+    phone:value('membershipPhone'),
+    email:value('membershipEmail'),
+    location:value('membershipLocation'),
+    preferred_payment_method:value('membershipPayment'),
+    notes:value('membershipNotes')||null
+  };
+
+  // Keep these values before submit() resets the form.
+  const selectedPlan = payload.selected_service;
+  const payerEmail = payload.email;
+  const payerName = payload.business_name;
+
+  const record = await submit('/public/memberships', payload, form);
+  if (!record || !ONLINE_MEMBERSHIP_PLANS.has(selectedPlan)) return;
+
+  const continueToPay = window.confirm(
+    `Application ${record.reference} was created successfully.\n\nContinue to secure Paystack payment now?`
+  );
+  if (!continueToPay) {
+    notify(`Application saved. Your reference is ${record.reference}. Payment can be completed later.`);
+    return;
+  }
+
+  try {
+    notify('Opening secure Paystack checkout…');
+    await initializePaystackPayment('membership', record.id, payerEmail, payerName);
+  } catch (error) {
+    notify(`${error.message}. Your application is still safely recorded as ${record.reference}.`, false);
+  }
+});
 
 window.addEventListener('offline', () => notify('You are offline. Form submissions will be available when your connection returns.', false));
 window.addEventListener('online', () => notify('Connection restored. You can continue.'));

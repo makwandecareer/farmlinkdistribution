@@ -170,45 +170,6 @@ def create_supplier_payment(data:SupplierPaymentIn,db:Session=Depends(get_db),us
     if not db.get(Farmer,data.farmer_id): raise HTTPException(404,"Farmer not found")
     r=SupplierPayment(reference=make_reference("SPAY"),**data.model_dump()); db.add(r); db.flush(); audit(db,user,"Created supplier payment","supplier_payment",r.id); db.commit(); return serialize(r)
 
-@router.post('/payments/paystack/initialize')
-def paystack_initialize(data:PaymentInitIn,db:Session=Depends(get_db)):
-    if not settings.paystack_secret_key: raise HTTPException(503,"Paystack is not configured")
-    reference=make_reference("PSTK")
-    payload={"email":str(data.payer_email),"amount":int(round(data.amount*100)),"currency":"ZAR","reference":reference,
-             "callback_url":data.callback_url or settings.paystack_callback_url,
-             "metadata":{"entity_type":data.entity_type,"entity_id":data.entity_id}}
-    headers={"Authorization":f"Bearer {settings.paystack_secret_key}","Content-Type":"application/json"}
-    with httpx.Client(timeout=30) as client:
-        response=client.post("https://api.paystack.co/transaction/initialize",json=payload,headers=headers)
-    result=response.json()
-    if not response.is_success or not result.get('status'): raise HTTPException(502,result.get('message','Paystack initialization failed'))
-    tx=PaymentTransaction(reference=reference,entity_type=data.entity_type,entity_id=data.entity_id,payer_email=str(data.payer_email),amount=data.amount,authorization_url=result['data']['authorization_url'],provider_payload=result)
-    db.add(tx); db.commit(); return {"reference":reference,"authorization_url":tx.authorization_url}
-
-def verify_paystack(reference:str,db:Session):
-    if not settings.paystack_secret_key: raise HTTPException(503,"Paystack is not configured")
-    headers={"Authorization":f"Bearer {settings.paystack_secret_key}"}
-    with httpx.Client(timeout=30) as client: response=client.get(f"https://api.paystack.co/transaction/verify/{reference}",headers=headers)
-    result=response.json(); tx=db.scalar(select(PaymentTransaction).where(PaymentTransaction.reference==reference))
-    if not tx: raise HTTPException(404,"Transaction not found")
-    data=result.get('data') or {}; expected=int(round(float(tx.amount)*100))
-    success=response.is_success and result.get('status') and data.get('status')=='success' and data.get('amount')==expected and data.get('currency')=='ZAR'
-    tx.status='Paid' if success else data.get('status','Failed'); tx.provider_payload=result
-    if success: tx.verified_at=datetime.utcnow()
-    db.commit(); return {"verified":success,"status":tx.status,"reference":reference}
-@router.get('/payments/paystack/verify/{reference}')
-def verify_payment(reference:str,db:Session=Depends(get_db)): return verify_paystack(reference,db)
-@router.post('/payments/paystack/webhook')
-async def paystack_webhook(request:Request,db:Session=Depends(get_db)):
-    raw=await request.body(); signature=request.headers.get('x-paystack-signature','')
-    expected=hmac.new(settings.paystack_secret_key.encode(),raw,hashlib.sha512).hexdigest() if settings.paystack_secret_key else ''
-    if not expected or not hmac.compare_digest(signature,expected): raise HTTPException(401,"Invalid webhook signature")
-    event=json.loads(raw)
-    if event.get('event')=='charge.success':
-        reference=event.get('data',{}).get('reference')
-        if reference: verify_paystack(reference,db)
-    return {"received":True}
-
 @router.get('/admin/payment-transactions')
 def payment_transactions(db:Session=Depends(get_db),user:User=Depends(current_user)):
     return [serialize(x) for x in db.scalars(select(PaymentTransaction).order_by(desc(PaymentTransaction.created_at))).all()]
