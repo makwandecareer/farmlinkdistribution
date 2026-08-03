@@ -245,3 +245,26 @@ button{white-space:nowrap}
 @media(max-width:480px){
   .marketplace-metrics{grid-template-columns:1fr}
 }
+
+/* FARMLINK FULL ICON ENCODING V9.3 */
+.sidebar nav button > span:first-child,
+.security-note > span:first-child,
+.search-symbol,
+.icon-btn,
+.account-chevron,
+.metric-icon,
+.empty-icon,
+.notification-menu > button,
+.global-search-trigger > span:first-child,
+.search-box > span:first-child {
+  font-family: "Segoe UI Symbol", "Segoe UI", Arial, sans-serif;
+  font-variant-emoji: text;
+  text-rendering: geometricPrecision;
+  speak: none;
+}
+.metric-icon,
+.empty-icon {
+  display: inline-grid;
+  place-items: center;
+  line-height: 1;
+}
