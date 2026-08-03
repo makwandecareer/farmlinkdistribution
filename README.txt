@@ -1,23 +1,47 @@
-FarmLink Backend — Payment Records Route Fix
+FarmLink National Product SEO — GitHub Installer
 
-The Payment Records screen returned 404 because the static route:
+Creates:
+- /products/
+- /products/eggs/
+- /products/poultry/
+- /products/potatoes/
+- /products/onions/
+- /products/tomatoes/
+- /products/cabbage/
+- /products/carrots/
+- /products/spinach/
+- /products/maize/
+- /products/animal-feed/
+- /products/fertilizer/
+- /products/fresh-vegetables/
+- /products/fresh-fruit/
+- /products/livestock/
+- /products/agricultural-inputs/
 
-    GET /api/admin/payments
+Each page includes:
+- Unique title and meta description
+- Canonical URL
+- Open Graph and Twitter metadata
+- Organization, CollectionPage, Breadcrumb and FAQ schema
+- Google Analytics 4
+- Responsive design
+- Internal links across product categories
+- Clear wording that availability and pricing require confirmation
+- No fabricated prices, stock levels, farmer counts or delivery promises
 
-was declared below the generic route:
+The installer preserves existing sitemap URLs and adds the product pages.
 
-    GET /api/admin/{resource}
+Run:
+powershell -ExecutionPolicy Bypass -File "%USERPROFILE%\Downloads\FarmLink-National-Product-SEO-GitHub\install-product-seo.ps1"
 
-FastAPI/Starlette resolves routes in declaration order, so "payments" was
-captured as the generic resource name.
+Then:
+cd /d E:\farmlink-production
+git status
+git add frontend\products frontend\sitemap.xml
+git commit -m "Launch national agricultural product SEO pages"
+git push origin main
 
-This patch moves all payment routes above the generic resource routes:
-
-    GET   /api/admin/payments
-    POST  /api/admin/payments
-    PATCH /api/admin/payments/{payment_id}
-
-The previous Users and Audit route fixes are retained.
-
-Replace backend/app/main.py, commit, push, and wait for the Render backend
-service to redeploy.
+After Render deploys:
+- Test /products/ and /products/eggs/
+- Resubmit sitemap.xml in Google Search Console
+- Use URL Inspection for the product hub and highest-priority product pages

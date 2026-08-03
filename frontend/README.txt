@@ -1,30 +1,47 @@
-FarmLink Administration Centre V4
+FarmLink National Product SEO — GitHub Installer
 
-This package replaces only:
-  frontend/admin/
-  frontend/assets/
+Creates:
+- /products/
+- /products/eggs/
+- /products/poultry/
+- /products/potatoes/
+- /products/onions/
+- /products/tomatoes/
+- /products/cabbage/
+- /products/carrots/
+- /products/spinach/
+- /products/maize/
+- /products/animal-feed/
+- /products/fertilizer/
+- /products/fresh-vegetables/
+- /products/fresh-fruit/
+- /products/livestock/
+- /products/agricultural-inputs/
 
-Included upgrades:
-- Live Chart.js revenue chart with PNG export
-- Global search across farmers, buyers, orders and memberships (Ctrl+K)
-- Live notifications dropdown
-- Dark mode with saved preference
-- Executive quick actions and expanded KPIs
-- Smart empty states and skeleton loading
-- Sortable tables and CSV export
-- Professional SVG navigation icons
-- Keyboard shortcuts: O orders, I finance
-- Existing inventory, logistics, quality, finance, documents, communications, users and audit modules preserved
+Each page includes:
+- Unique title and meta description
+- Canonical URL
+- Open Graph and Twitter metadata
+- Organization, CollectionPage, Breadcrumb and FAQ schema
+- Google Analytics 4
+- Responsive design
+- Internal links across product categories
+- Clear wording that availability and pricing require confirmation
+- No fabricated prices, stock levels, farmer counts or delivery promises
 
-Install from E:\farmlink-production after extracting this ZIP:
-  xcopy frontend frontend /E /I /Y
-  git add frontend\admin frontend\assets
-  git commit -m "Upgrade FarmLink admin to V4 enterprise dashboard"
-  git push origin main
+The installer preserves existing sitemap URLs and adds the product pages.
 
-After Render deploys, open:
-  https://farmlinkdistribution-1ndv.onrender.com/admin/
+Run:
+powershell -ExecutionPolicy Bypass -File "%USERPROFILE%\Downloads\FarmLink-National-Product-SEO-GitHub\install-product-seo.ps1"
 
-Then press Ctrl+Shift+R.
+Then:
+cd /d E:\farmlink-production
+git status
+git add frontend\products frontend\sitemap.xml
+git commit -m "Launch national agricultural product SEO pages"
+git push origin main
 
-The admin page references Chart.js from jsDelivr. If your organisation blocks third-party CDNs, download Chart.js locally and change the script reference in frontend/admin/index.html.
+After Render deploys:
+- Test /products/ and /products/eggs/
+- Resubmit sitemap.xml in Google Search Console
+- Use URL Inspection for the product hub and highest-priority product pages
