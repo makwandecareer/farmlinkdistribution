@@ -100,3 +100,29 @@ button{white-space:nowrap}
 @media(max-width:460px){
   .topbar h1{font-size:1rem}.topbar .kicker{font-size:.58rem}.metrics{grid-template-columns:1fr}.command-banner{padding:22px 20px}.command-date{margin-top:8px}
 }
+
+
+/* FarmLink V6 provincial formality and precision layer */
+.metric{position:relative;isolation:isolate}
+.metric::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;border-radius:13px 0 0 13px;background:var(--green-700)}
+.metric-emerald::before{background:#0e9f6e}.metric-forest::before{background:#073827}.metric-gold::before{background:#c79a36}.metric-blue::before{background:#2f6f9f}.metric-teal::before{background:#17827a}
+.metric-emerald .metric-icon{background:#e3f6ef;color:#087753}.metric-forest .metric-icon{background:#e5eee9;color:#073827}.metric-gold .metric-icon{background:#fbf1d9;color:#8a6518}.metric-blue .metric-icon{background:#e6f0f8;color:#2f6f9f}.metric-teal .metric-icon{background:#e4f5f3;color:#126d66}
+.province-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:#eef6f1;color:#0b5b40;font-size:.68rem;font-weight:850;white-space:nowrap;border:1px solid #d9e9df}
+.province-chip::before{content:"";width:6px;height:6px;border-radius:50%;background:#c79a36}
+.province-panel{margin-top:18px}
+.province-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:18px 20px 22px}
+.province-card{display:grid;gap:4px;padding:15px 16px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(145deg,#fff,#f8fbf9)}
+.province-card strong{font-size:.82rem;color:var(--green-900)}
+.province-card span{font-size:.7rem;color:var(--muted)}
+.formal-badge{display:inline-flex;align-items:center;border:1px solid #ead8ad;background:#fff8e8;color:#7a5a17;padding:7px 10px;border-radius:999px;font-size:.66rem;font-weight:900;letter-spacing:.04em}
+.toolbar select{min-width:170px}
+.top-actions{min-width:0}
+.account-trigger{max-width:260px}
+.account-copy{min-width:0}
+.account-copy strong,.account-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.health i{animation:farmPulse 2.3s ease-in-out infinite}
+@keyframes farmPulse{0%,100%{box-shadow:0 0 0 4px rgba(28,175,115,.12)}50%{box-shadow:0 0 0 8px rgba(28,175,115,.04)}}
+.dark .province-card{background:linear-gradient(145deg,#12271f,#0f211b);border-color:#28463a}
+.dark .province-chip{background:#17392c;color:#cde7da;border-color:#28523f}
+@media(max-width:1180px){.province-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:720px){.province-grid{grid-template-columns:1fr}.toolbar select{min-width:0;width:100%}.formal-badge{margin-top:8px}}
