@@ -467,3 +467,24 @@
 .funding-v4-cta .button{min-width:300px}
 @media(max-width:1050px){.funding-v4-hero{grid-template-columns:1fr}.funding-v4-copy{padding-right:0}.funding-v4-visual{min-height:500px}.funding-v4-steps{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:720px){.funding-v4-hero{padding-top:40px}.funding-v4-docs,.funding-v4-requirement-grid,.funding-v4-steps{grid-template-columns:1fr}.funding-v4-glance{position:relative;right:auto;top:auto;width:auto;margin:-90px 18px 18px}.funding-v4-visual{overflow:visible;margin-bottom:150px}.funding-v4-visual img{border-radius:24px}.funding-v4-cta{display:grid}.funding-v4-cta .button{min-width:0;width:100%}}
+/* FARMLINK_BUSINESS_LAUNCH_PUBLIC_V2 */
+.funding-services-section{background:#f4f7f4}
+.section-heading.centered{text-align:center;max-width:850px;margin:0 auto 38px}
+.funding-service-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.funding-service-card{position:relative;background:#fff;border:1px solid rgba(8,62,44,.12);border-radius:22px;padding:28px;box-shadow:0 16px 40px rgba(8,62,44,.06)}
+.funding-service-card.featured{border-color:#d19a2a;transform:translateY(-8px);box-shadow:0 22px 52px rgba(8,62,44,.12)}
+.funding-service-label{display:inline-block;text-transform:uppercase;letter-spacing:.12em;font-size:11px;font-weight:800;color:#8a681f}
+.funding-service-card h3{margin:12px 0}
+.funding-service-price{display:block;font-size:38px;color:#073827}
+.funding-service-card small{display:block;color:#66756e;margin-bottom:20px}
+.funding-service-card ul{display:grid;gap:10px;margin:0 0 24px;padding:0;list-style:none}
+.funding-service-card li{position:relative;padding-left:24px;color:#43574d}
+.funding-service-card li:before{content:"";position:absolute;left:0;top:7px;width:12px;height:12px;border-radius:50%;background:#d19a2a}
+.funding-payment-note{display:flex;gap:10px;align-items:flex-start;margin-top:24px;background:#fff;border-left:4px solid #d19a2a;border-radius:0 14px 14px 0;padding:16px 18px}
+.funding-payment-note strong{white-space:nowrap}
+.business-launch-section{background:#fff}
+.business-launch-layout{display:grid;grid-template-columns:.85fr 1.15fr;gap:42px;align-items:center}
+.business-launch-checklist{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.business-launch-checklist span{background:#f7f9f7;border:1px solid rgba(8,62,44,.1);border-radius:14px;padding:16px;font-weight:700;color:#073827;box-shadow:0 10px 24px rgba(8,62,44,.04)}
+@media(max-width:900px){.funding-service-grid{grid-template-columns:1fr}.funding-service-card.featured{transform:none}.business-launch-layout{grid-template-columns:1fr}.business-launch-checklist{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:580px){.business-launch-checklist{grid-template-columns:1fr}.funding-payment-note{display:block}.funding-payment-note strong{display:block;margin-bottom:6px}}

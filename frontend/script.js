@@ -52,3 +52,24 @@ get('entrepreneurForm')?.addEventListener('submit',e=>{
     business_idea:value('entrepreneurIdea')
   },e.currentTarget)
 });
+/* FARMLINK_PAID_FUNDING_SERVICE_V1 */
+document.querySelectorAll('.funding-service-select').forEach(button=>{
+  button.addEventListener('click',()=>{
+    const service=button.dataset.fundingService||'Funding Assistance';
+    const fee=button.dataset.fundingFee||'';
+    const support=document.getElementById('entrepreneurSupport');
+    const idea=document.getElementById('entrepreneurIdea');
+
+    document.querySelector('[data-tab="entrepreneur"]')?.click();
+
+    if(support){
+      support.value=`Paid funding assistance: ${service} (R${fee} once-off)`;
+    }
+
+    if(idea && !idea.value.trim()){
+      idea.value=`I would like FarmLink assistance with ${service}. I understand that the service is paid and that funding approval is not guaranteed.`;
+    }
+
+    document.getElementById('portal')?.scrollIntoView({behavior:'smooth',block:'start'});
+  });
+});

@@ -82,9 +82,9 @@ function logout(){localStorage.removeItem('farmlink_token');token='';currentUser
 $('#logout').onclick=logout;
 $('#loginForm').onsubmit=async e=>{e.preventDefault();$('#loginError').textContent='';try{const d=await api('/auth/login',{method:'POST',body:JSON.stringify({email:$('#loginEmail').value,password:$('#loginPassword').value})});token=d.access_token;localStorage.setItem('farmlink_token',token);currentUser=d.user;await start()}catch(err){$('#loginError').textContent=err.message}};
 async function start(){try{currentUser=currentUser||await api('/auth/me');$('#loginScreen').classList.add('hidden');$('#app').classList.remove('hidden');$('#sideName').textContent=currentUser.full_name;$('#sideRole').textContent=currentUser.job_title;const initials=currentUser.full_name.split(' ').map(x=>x[0]).slice(0,2).join('');$('#avatar').textContent=initials;$('#topAvatar').textContent=initials;$('#topName').textContent=currentUser.full_name;$('#topRole').textContent=`${currentUser.job_title||'Administrator'} \u00B7 ${String(currentUser.role||'ADMIN').toUpperCase()}`;$('#usersNav').style.display=isCEO()?'flex':'none';if(currentUser.must_change_password)setTimeout(openPasswordModal,300);await showView('dashboard')}catch(e){logout()}}
-const titles={dashboard:'Executive overview',farmers:'Farmer applications',buyers:'Business buyers',orders:'Bulk orders',memberships:'Memberships & marketing',entrepreneurs:'Agricultural entrepreneurship',fundingcentre:'Funding readiness centre',inventory:'Inventory management',logistics:'Logistics & dispatch',quality:'Quality control',finance:'Finance centre',payments:'Payment records',notifications:'Communications',documents:'Document centre',users:'Administrator management',audit:'Audit trail',marketplace:'Marketplace control'};
+const titles={dashboard:'Executive overview',farmers:'Farmer applications',buyers:'Business buyers',orders:'Bulk orders',memberships:'Memberships & marketing',entrepreneurs:'Agricultural entrepreneurship',fundingcentre:'Funding readiness centre',launchcentre:'Business Launch Centre',inventory:'Inventory management',logistics:'Logistics & dispatch',quality:'Quality control',finance:'Finance centre',payments:'Payment records',notifications:'Communications',documents:'Document centre',users:'Administrator management',audit:'Audit trail',marketplace:'Marketplace control'};
 $$('#nav button').forEach(b=>b.onclick=()=>showView(b.dataset.view));$('#refresh').onclick=()=>showView($('.view.active').id);
-async function showView(name){$$('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name));$$('.view').forEach(v=>v.classList.toggle('active',v.id===name));$('#pageTitle').textContent=titles[name]||name;const loaders={dashboard:loadDashboard,farmers:()=>loadResource('farmers'),buyers:()=>loadResource('buyers'),orders:()=>loadResource('orders'),memberships:()=>loadResource('memberships'),entrepreneurs:()=>loadResource('entrepreneurs'),fundingcentre:loadFundingCentre,inventory:loadInventory,logistics:loadLogistics,quality:loadQuality,finance:loadFinance,payments:loadPayments,notifications:loadNotifications,documents:loadDocuments,users:loadUsers,audit:loadAudit,marketplace:loadMarketplace};try{await loaders[name]?.()}catch(e){toast(e.message,false)}}
+async function showView(name){$$('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name));$$('.view').forEach(v=>v.classList.toggle('active',v.id===name));$('#pageTitle').textContent=titles[name]||name;const loaders={dashboard:loadDashboard,farmers:()=>loadResource('farmers'),buyers:()=>loadResource('buyers'),orders:()=>loadResource('orders'),memberships:()=>loadResource('memberships'),entrepreneurs:()=>loadResource('entrepreneurs'),fundingcentre:loadFundingCentre,launchcentre:loadLaunchCentre,inventory:loadInventory,logistics:loadLogistics,quality:loadQuality,finance:loadFinance,payments:loadPayments,notifications:loadNotifications,documents:loadDocuments,users:loadUsers,audit:loadAudit,marketplace:loadMarketplace};try{await loaders[name]?.()}catch(e){toast(e.message,false)}}
 const badge=s=>`<span class="status ${esc(String(s).replaceAll(' ','-'))}">${esc(s)}</span>`;
 const empty=(m='No records available.',detail='New activity will appear here automatically.')=>`<div class="empty-state"><div><div class="empty-icon">\u2713</div><strong>${esc(m)}</strong><p>${esc(detail)}</p></div></div>`;
 function bars(series){const max=Math.max(...series.map(x=>Number(x.value)),1);return `<div class="chart">${series.map(x=>`<div class="chart-col"><div class="chart-bar" style="height:${Math.max(4,Number(x.value)/max*180)}px" title="${esc(x.value)}"></div><span>${esc(x.label)}</span></div>`).join('')}</div>`}
@@ -2151,5 +2151,307 @@ window.openFundingRecord=async function(id){
     toast('Funding readiness profile saved');
     closeDrawer();
     loadFundingCentre();
+  };
+};
+/* FARMLINK_BUSINESS_LAUNCH_ADMIN_V2 */
+const LAUNCH_PROFILE_PREFIX='AGRISTART_PROFILE_V2:';
+const LAUNCH_DEFAULT_FUNDING_FEES={
+  'Funding Readiness Assessment':499,
+  'Funding Application Support':999,
+  'Full Funding Pack':1999
+};
+
+const LAUNCH_ITEMS=[
+  ['company_registration','Company registration'],
+  ['business_bank_account','Business bank account'],
+  ['sars_registration','SARS registration'],
+  ['branding','Branding and logo'],
+  ['business_profile','Business profile'],
+  ['product_definition','Product definition'],
+  ['pricing','Pricing'],
+  ['packaging','Packaging'],
+  ['supplier_agreements','Supplier agreements'],
+  ['production_site','Production site'],
+  ['equipment','Equipment'],
+  ['quality_inspection','Quality inspection'],
+  ['insurance','Insurance'],
+  ['delivery_capability','Delivery capability'],
+  ['marketplace_listing','Marketplace listing'],
+  ['buyer_introduction','Buyer introduction'],
+  ['first_order','First commercial order']
+];
+
+function launchParseProfile(raw){
+  const text=String(raw||'');
+  if(!text.startsWith(LAUNCH_PROFILE_PREFIX)){
+    return {case_notes:text,timeline:[],launch:{items:{},tasks:[]},funding:{}};
+  }
+  try{
+    const profile=JSON.parse(text.slice(LAUNCH_PROFILE_PREFIX.length));
+    profile.timeline=Array.isArray(profile.timeline)?profile.timeline:[];
+    profile.launch=profile.launch||{items:{},tasks:[]};
+    profile.launch.items=profile.launch.items||{};
+    profile.launch.tasks=Array.isArray(profile.launch.tasks)?profile.launch.tasks:[];
+    profile.funding=profile.funding||{};
+    return profile;
+  }catch{
+    return {timeline:[],launch:{items:{},tasks:[]},funding:{}};
+  }
+}
+
+function launchSerializeProfile(profile){
+  return LAUNCH_PROFILE_PREFIX+JSON.stringify(profile);
+}
+
+function launchPercent(items){
+  const completed=LAUNCH_ITEMS.filter(([key])=>items?.[key]?.completed).length;
+  return Math.round(completed/LAUNCH_ITEMS.length*100);
+}
+
+async function loadLaunchCentre(){
+  const view=$('#launchcentre');
+  view.innerHTML=`
+    <div class="page-head">
+      <div>
+        <span class="kicker">Enterprise activation</span>
+        <h2>Business Launch Centre</h2>
+        <p class="muted">Track every practical step required to move an AgriStart participant into commercial operation.</p>
+      </div>
+      <div class="toolbar">
+        <input id="launchSearch" placeholder="Search applicants">
+        <select id="launchFilter">
+          <option value="all">All readiness levels</option>
+          <option value="not-started">Not started</option>
+          <option value="in-progress">In progress</option>
+          <option value="ready">Launch ready</option>
+          <option value="launched">Launched</option>
+        </select>
+      </div>
+    </div>
+    <div id="launchKpis" class="launch-kpi-grid"></div>
+    <div class="panel table-wrap"><div id="launchTable"></div></div>`;
+
+  const render=async()=>{
+    const response=await api(`/admin/entrepreneurs?q=${encodeURIComponent($('#launchSearch').value)}&status=all`);
+    let records=(response.items||[]).map(record=>{
+      const profile=launchParseProfile(record.internal_notes);
+      const percent=launchPercent(profile.launch.items);
+      return {...record,_profile:profile,_launch:profile.launch,_percent:percent};
+    });
+
+    const filter=$('#launchFilter').value;
+    records=records.filter(record=>{
+      const launched=record._launch.status==='Launched';
+      if(filter==='not-started')return record._percent===0&&!launched;
+      if(filter==='in-progress')return record._percent>0&&record._percent<100&&!launched;
+      if(filter==='ready')return record._percent===100&&!launched;
+      if(filter==='launched')return launched;
+      return true;
+    });
+
+    const total=records.length;
+    const inProgress=records.filter(r=>r._percent>0&&r._percent<100).length;
+    const ready=records.filter(r=>r._percent===100&&r._launch.status!=='Launched').length;
+    const launched=records.filter(r=>r._launch.status==='Launched').length;
+
+    $('#launchKpis').innerHTML=[
+      ['Total businesses',total,'Launch pipeline'],
+      ['In progress',inProgress,'Active launch support'],
+      ['Launch ready',ready,'All checklist items complete'],
+      ['Launched',launched,'Commercially operating']
+    ].map(([label,value,note])=>`
+      <article class="launch-kpi-card"><span>${esc(label)}</span><strong>${value}</strong><small>${esc(note)}</small></article>`).join('');
+
+    const cols=['Business','Readiness','Launch status','Next action','Funding service','Payment',''];
+    const rows=records.map(record=>{
+      const funding=record._profile.funding||{};
+      return [
+        `<strong>${esc(record.full_name)}</strong><div class="ref">${esc(record.reference)}</div><small>${esc(record.agricultural_interest||'')}</small>`,
+        `<div class="launch-progress"><i style="width:${record._percent}%"></i></div><small>${record._percent}% complete</small>`,
+        badge(record._launch.status||'Not started'),
+        esc(record._launch.next_action||'Not set'),
+        esc(funding.service_name||'Not selected'),
+        badge(funding.payment_status||'Not invoiced'),
+        `<button class="link-btn" onclick="openLaunchRecord(${Number(record.id)})">Manage</button>`
+      ];
+    });
+
+    $('#launchTable').innerHTML=rows.length?table(cols,rows):empty('No businesses match the selected filters.');
+  };
+
+  $('#launchSearch').oninput=debounce(render,250);
+  $('#launchFilter').onchange=render;
+  await render();
+}
+
+window.openLaunchRecord=async function(id){
+  const record=await api(`/admin/entrepreneurs/${id}`);
+  const profile=launchParseProfile(record.internal_notes);
+  const launch=profile.launch||{items:{},tasks:[]};
+  const funding=profile.funding||{};
+  const tasks=Array.isArray(launch.tasks)?launch.tasks:[];
+
+  $('#drawerBody').innerHTML=`
+    <span class="kicker">Business launch profile</span>
+    <h2>${esc(record.full_name)}</h2>
+    <p class="ref">${esc(record.reference)}</p>
+
+    <div class="launch-record-summary">
+      <article><span>Launch readiness</span><strong id="launchReadiness">${launchPercent(launch.items)}%</strong><small>Checklist completion</small></article>
+      <article><span>Launch status</span><strong>${esc(launch.status||'Not started')}</strong><small>${esc(launch.next_action||'Next action not set')}</small></article>
+      <article><span>Funding service</span><strong>${esc(funding.service_name||'Not selected')}</strong><small>${esc(funding.payment_status||'Not invoiced')}</small></article>
+    </div>
+
+    <form id="launchRecordForm">
+      <div class="launch-checklist-grid">
+        ${LAUNCH_ITEMS.map(([key,label])=>`
+          <label>
+            <input id="launch_${key}" type="checkbox" ${launch.items?.[key]?.completed?'checked':''}>
+            <span>${esc(label)}</span>
+            <input id="launch_due_${key}" type="date" value="${esc(launch.items?.[key]?.due_date||'')}" title="Due date">
+          </label>`).join('')}
+      </div>
+
+      <div class="form-grid">
+        <label>Launch status
+          <select id="launchStatus">
+            ${['Not started','In progress','At risk','Launch ready','Launched'].map(x=>`<option ${launch.status===x?'selected':''}>${x}</option>`).join('')}
+          </select>
+        </label>
+        <label>Next action<input id="launchNextAction" value="${esc(launch.next_action||'')}"></label>
+        <label>Responsible administrator<input id="launchOwner" value="${esc(launch.owner||'')}"></label>
+        <label>Target launch date<input id="launchTargetDate" type="date" value="${esc(launch.target_date||'')}"></label>
+        <label class="full">Launch notes<textarea id="launchNotes" rows="6">${esc(launch.notes||'')}</textarea></label>
+      </div>
+
+      <div class="launch-payment-panel">
+        <div>
+          <span class="kicker">Paid funding assistance</span>
+          <h3>Funding service and payment</h3>
+          <p>Funding work must not begin until the selected service is approved and payment is recorded.</p>
+        </div>
+
+        <div class="form-grid">
+          <label>Funding service
+            <select id="fundingServiceName">
+              ${['Not selected','Funding Readiness Assessment','Funding Application Support','Full Funding Pack'].map(x=>`<option ${funding.service_name===x?'selected':''}>${x}</option>`).join('')}
+            </select>
+          </label>
+          <label>Service fee (R)<input id="fundingServiceFee" type="number" min="0" step="0.01" value="${esc(funding.service_fee||'')}"></label>
+          <label>Payment status
+            <select id="fundingPaymentStatus">
+              ${['Not invoiced','Invoice issued','Awaiting payment','Paid','Part paid','Cancelled','Refunded'].map(x=>`<option ${funding.payment_status===x?'selected':''}>${x}</option>`).join('')}
+            </select>
+          </label>
+          <label>Payment method
+            <select id="fundingPaymentMethod">
+              ${['Not selected','Paystack','Bank transfer','Cash deposit'].map(x=>`<option ${funding.payment_method===x?'selected':''}>${x}</option>`).join('')}
+            </select>
+          </label>
+          <label>Invoice/reference number<input id="fundingInvoiceReference" value="${esc(funding.invoice_reference||'')}"></label>
+          <label>Payment date<input id="fundingPaymentDate" type="date" value="${esc(funding.payment_date||'')}"></label>
+        </div>
+      </div>
+
+      <div class="launch-task-head">
+        <div><span class="kicker">Action management</span><h3>Launch tasks</h3></div>
+        <button type="button" class="btn btn-secondary" id="addLaunchTask">Add task</button>
+      </div>
+      <div id="launchTaskList" class="launch-task-list"></div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeDrawer()">Cancel</button>
+        <button class="btn btn-primary">Save launch profile</button>
+      </div>
+    </form>`;
+
+  openDrawer();
+
+  const renderTasks=()=>{
+    $('#launchTaskList').innerHTML=tasks.length?tasks.map((task,index)=>`
+      <article class="launch-task-card">
+        <div><strong>${esc(task.title)}</strong><span>${esc(task.status||'Not started')}</span></div>
+        <p>${esc(task.description||'')}</p>
+        <small>${task.due_date?`Due ${new Date(task.due_date).toLocaleDateString('en-ZA')}`:'No due date'}</small>
+        <button type="button" class="link-btn" data-delete-launch-task="${index}">Delete</button>
+      </article>`).join(''):'<p class="muted">No launch tasks recorded.</p>';
+
+    $$('[data-delete-launch-task]').forEach(button=>{
+      button.onclick=()=>{
+        tasks.splice(Number(button.dataset.deleteLaunchTask),1);
+        renderTasks();
+      };
+    });
+  };
+
+  $('#addLaunchTask').onclick=()=>{
+    const title=prompt('Task title','');
+    if(!title)return;
+    const description=prompt('Task description','');
+    if(description==null)return;
+    const due=prompt('Due date (YYYY-MM-DD)','');
+    if(due==null)return;
+    tasks.unshift({title:title.trim(),description:description.trim(),due_date:due.trim(),status:'Not started'});
+    renderTasks();
+  };
+
+  $('#fundingServiceName').onchange=()=>{
+    const service=$('#fundingServiceName').value;
+    if(LAUNCH_DEFAULT_FUNDING_FEES[service]){
+      $('#fundingServiceFee').value=LAUNCH_DEFAULT_FUNDING_FEES[service];
+    }
+  };
+
+  renderTasks();
+
+  $('#launchRecordForm').onsubmit=async event=>{
+    event.preventDefault();
+
+    launch.items=launch.items||{};
+    LAUNCH_ITEMS.forEach(([key])=>{
+      launch.items[key]={
+        completed:$('#launch_'+key).checked,
+        due_date:$('#launch_due_'+key).value
+      };
+    });
+
+    launch.status=$('#launchStatus').value;
+    launch.next_action=$('#launchNextAction').value;
+    launch.owner=$('#launchOwner').value;
+    launch.target_date=$('#launchTargetDate').value;
+    launch.notes=$('#launchNotes').value;
+    launch.tasks=tasks;
+
+    funding.service_name=$('#fundingServiceName').value;
+    funding.service_fee=$('#fundingServiceFee').value?Number($('#fundingServiceFee').value):null;
+    funding.payment_status=$('#fundingPaymentStatus').value;
+    funding.payment_method=$('#fundingPaymentMethod').value;
+    funding.invoice_reference=$('#fundingInvoiceReference').value;
+    funding.payment_date=$('#fundingPaymentDate').value;
+
+    if(funding.service_name!=='Not selected'&&funding.payment_status!=='Paid'){
+      const proceed=confirm('Funding assistance has not been marked as paid. Save the record without starting paid funding work?');
+      if(!proceed)return;
+    }
+
+    profile.launch=launch;
+    profile.funding=funding;
+    profile.timeline=Array.isArray(profile.timeline)?profile.timeline:[];
+    profile.timeline.unshift({
+      at:new Date().toISOString(),
+      type:'Business launch',
+      description:`Launch profile updated - ${launchPercent(launch.items)}% complete`
+    });
+
+    await api(`/admin/entrepreneurs/${id}`,{
+      method:'PATCH',
+      body:JSON.stringify({
+        internal_notes:launchSerializeProfile(profile)
+      })
+    });
+
+    toast('Business launch profile saved');
+    closeDrawer();
+    loadLaunchCentre();
   };
 };

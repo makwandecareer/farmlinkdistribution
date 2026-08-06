@@ -516,3 +516,29 @@ button{white-space:nowrap}
 .funding-application-card .link-btn{position:absolute;right:14px;bottom:12px}
 @media(max-width:1000px){.funding-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.funding-document-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:650px){.funding-kpi-grid,.funding-record-summary,.funding-document-grid{grid-template-columns:1fr}.funding-application-head{display:grid}.funding-application-head .btn{width:100%}}
+/* FARMLINK_BUSINESS_LAUNCH_ADMIN_V2 */
+.launch-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}
+.launch-kpi-card{background:#fff;border:1px solid rgba(8,62,44,.12);border-radius:18px;padding:20px;box-shadow:0 12px 30px rgba(8,62,44,.05)}
+.launch-kpi-card span,.launch-kpi-card small{display:block;color:#66756e}
+.launch-kpi-card strong{display:block;font-size:30px;color:#073827;margin:8px 0}
+.launch-progress{width:150px;height:9px;border-radius:999px;background:#e5ece8;overflow:hidden;margin-bottom:6px}
+.launch-progress i{display:block;height:100%;background:#d19a2a;border-radius:999px}
+.launch-record-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}
+.launch-record-summary article{background:#f7f9f7;border:1px solid rgba(8,62,44,.1);border-radius:14px;padding:16px}
+.launch-record-summary span,.launch-record-summary small{display:block;color:#66756e}
+.launch-record-summary strong{display:block;font-size:20px;color:#073827;margin:5px 0}
+.launch-checklist-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:22px}
+.launch-checklist-grid label{display:grid;grid-template-columns:auto 1fr 150px;gap:10px;align-items:center;background:#f7f9f7;border:1px solid rgba(8,62,44,.1);border-radius:12px;padding:12px}
+.launch-payment-panel{margin:28px 0;background:#f5f0e4;border-left:4px solid #d19a2a;border-radius:14px;padding:20px}
+.launch-payment-panel h3{margin:4px 0 6px}
+.launch-task-head{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:28px 0 12px}
+.launch-task-head h3{margin:3px 0 0}
+.launch-task-head .btn{width:auto}
+.launch-task-list{display:grid;gap:10px}
+.launch-task-card{position:relative;background:#fff;border:1px solid rgba(8,62,44,.12);border-radius:14px;padding:15px}
+.launch-task-card>div{display:flex;justify-content:space-between;gap:16px}
+.launch-task-card strong,.launch-task-card span,.launch-task-card small{display:block}
+.launch-task-card span,.launch-task-card small{color:#66756e}
+.launch-task-card .link-btn{position:absolute;right:14px;bottom:12px}
+@media(max-width:1000px){.launch-kpi-grid{grid-template-columns:repeat(2,1fr)}.launch-checklist-grid{grid-template-columns:1fr}}
+@media(max-width:650px){.launch-kpi-grid,.launch-record-summary{grid-template-columns:1fr}.launch-checklist-grid label{grid-template-columns:auto 1fr}.launch-checklist-grid label input[type="date"]{grid-column:1/-1}.launch-task-head{display:grid}.launch-task-head .btn{width:100%}}
