@@ -1418,3 +1418,268 @@ if(token)start();
     };
   };
 })();
+/* FARMLINK_AGRISTART_CONVERT_TO_FARMER_V1
+   One-click conversion from an AgriStart applicant to a FarmLink farmer record.
+   Uses the existing public farmer endpoint and existing admin APIs. */
+(() => {
+  const CONVERSION_PROFILE_PREFIX = 'AGRISTART_PROFILE_V2:';
+
+  const safeText = value => String(value == null ? '' : value).trim();
+
+  const parseConversionProfile = raw => {
+    const text = String(raw || '');
+    if (!text.startsWith(CONVERSION_PROFILE_PREFIX)) {
+      return {
+        version: 2,
+        case_notes: text,
+        timeline: [],
+        communications: [],
+        conversion: null
+      };
+    }
+    try {
+      const profile = JSON.parse(text.slice(CONVERSION_PROFILE_PREFIX.length));
+      profile.timeline = Array.isArray(profile.timeline) ? profile.timeline : [];
+      profile.communications = Array.isArray(profile.communications) ? profile.communications : [];
+      return profile;
+    } catch {
+      return {
+        version: 2,
+        case_notes: text,
+        timeline: [],
+        communications: [],
+        conversion: null
+      };
+    }
+  };
+
+  const serializeConversionProfile = profile =>
+    CONVERSION_PROFILE_PREFIX + JSON.stringify(profile);
+
+  const askRequired = (label,defaultValue='') => {
+    const value = window.prompt(label,defaultValue);
+    if (value == null) return null;
+    const clean = value.trim();
+    if (!clean) {
+      alert(`${label} is required.`);
+      return askRequired(label,defaultValue);
+    }
+    return clean;
+  };
+
+  const askOptional = (label,defaultValue='') => {
+    const value = window.prompt(label,defaultValue);
+    return value == null ? null : value.trim();
+  };
+
+  const findPossibleFarmerDuplicate = async applicant => {
+    const searches = [applicant.email, applicant.phone, applicant.full_name]
+      .map(safeText)
+      .filter(Boolean);
+
+    for (const query of searches) {
+      try {
+        const result = await api(`/admin/farmers?q=${encodeURIComponent(query)}&status=all`);
+        const items = result.items || [];
+        const duplicate = items.find(farmer =>
+          (safeText(applicant.email) && safeText(farmer.email).toLowerCase() === safeText(applicant.email).toLowerCase()) ||
+          (safeText(applicant.phone) && safeText(farmer.phone).replace(/\s/g,'') === safeText(applicant.phone).replace(/\s/g,''))
+        );
+        if (duplicate) return duplicate;
+      } catch {}
+    }
+    return null;
+  };
+
+  const buildFarmerPayload = applicant => {
+    const farmName = askRequired('Farm or business name', applicant.full_name ? `${applicant.full_name} Agricultural Enterprise` : '');
+    if (farmName == null) return null;
+
+    const contactPerson = askRequired('Contact person', applicant.full_name || '');
+    if (contactPerson == null) return null;
+
+    const phone = askRequired('Phone number', applicant.phone || '');
+    if (phone == null) return null;
+
+    const email = askRequired('Email address', applicant.email || '');
+    if (email == null) return null;
+
+    const location = askRequired(
+      'Farm location (town, municipality, province)',
+      [applicant.municipality, applicant.province].filter(Boolean).join(', ')
+    );
+    if (location == null) return null;
+
+    const producerType = askRequired(
+      'Producer type',
+      applicant.agricultural_interest || 'Other agricultural producer'
+    );
+    if (producerType == null) return null;
+
+    const weeklyCapacityRaw = askRequired('Estimated weekly capacity (enter a number)', '0');
+    if (weeklyCapacityRaw == null) return null;
+    const weeklyCapacity = Number(String(weeklyCapacityRaw).replace(/[^0-9.]/g,''));
+    if (!Number.isFinite(weeklyCapacity) || weeklyCapacity < 0) {
+      alert('Weekly capacity must be a valid number.');
+      return null;
+    }
+
+    const eggSizes = askOptional(
+      'Product sizes or grades available',
+      applicant.agricultural_interest?.toLowerCase().includes('egg')
+        ? 'Medium, large, extra-large'
+        : applicant.agricultural_interest || ''
+    );
+    if (eggSizes == null) return null;
+
+    const packaging = askOptional('Packaging available', '');
+    if (packaging == null) return null;
+
+    const deliveryCapability = askRequired('Delivery capability (Yes, No or Limited)', 'Limited');
+    if (deliveryCapability == null) return null;
+
+    const additionalInfo = [
+      `Converted from AgriStart application ${applicant.reference}.`,
+      applicant.business_idea ? `Business idea: ${applicant.business_idea}` : '',
+      applicant.current_resources ? `Current resources: ${applicant.current_resources}` : '',
+      applicant.support_required ? `Support required: ${applicant.support_required}` : ''
+    ].filter(Boolean).join('\n');
+
+    return {
+      farm_name: farmName,
+      contact_person: contactPerson,
+      phone,
+      email,
+      location,
+      producer_type: producerType,
+      weekly_capacity: weeklyCapacity,
+      egg_sizes: eggSizes || null,
+      packaging: packaging || null,
+      delivery_capability: deliveryCapability,
+      additional_information: additionalInfo
+    };
+  };
+
+  const convertApplicantToFarmer = async applicantId => {
+    const applicant = await api(`/admin/entrepreneurs/${applicantId}`);
+
+    if (applicant.status === 'Converted to Farmer') {
+      alert('This applicant has already been converted.');
+      return;
+    }
+
+    const profile = parseConversionProfile(applicant.internal_notes);
+
+    if (profile.conversion?.farmer_id || profile.conversion?.farmer_reference) {
+      alert(`This applicant is already linked to farmer ${profile.conversion.farmer_reference || profile.conversion.farmer_id}.`);
+      return;
+    }
+
+    const duplicate = await findPossibleFarmerDuplicate(applicant);
+    if (duplicate) {
+      const proceed = confirm(
+        `A possible farmer record already exists:\n\n${duplicate.farm_name || 'Farmer'}\n${duplicate.reference || ''}\n\nLink this applicant to the existing farmer instead of creating a duplicate?`
+      );
+      if (!proceed) return;
+
+      profile.conversion = {
+        farmer_id: duplicate.id,
+        farmer_reference: duplicate.reference,
+        farmer_name: duplicate.farm_name,
+        converted_at: new Date().toISOString(),
+        linked_existing_record: true
+      };
+      profile.timeline = Array.isArray(profile.timeline) ? profile.timeline : [];
+      profile.timeline.unshift({
+        at: new Date().toISOString(),
+        type: 'Farmer conversion',
+        description: `Linked to existing farmer ${duplicate.reference || duplicate.id}`
+      });
+
+      await api(`/admin/entrepreneurs/${applicantId}`,{
+        method:'PATCH',
+        body:JSON.stringify({
+          status:'Marketplace Ready',
+          internal_notes:serializeConversionProfile(profile)
+        })
+      });
+
+      toast('Applicant linked to existing farmer');
+      closeDrawer();
+      await loadResource('entrepreneurs');
+      return;
+    }
+
+    if (!confirm('Convert this approved AgriStart applicant into a FarmLink farmer record?')) return;
+
+    const payload = buildFarmerPayload(applicant);
+    if (!payload) return;
+
+    let created;
+    try {
+      created = await api('/public/farmers',{
+        method:'POST',
+        body:JSON.stringify(payload)
+      });
+    } catch (error) {
+      const fallbackPayload = {...payload};
+      if ('additional_information' in fallbackPayload) {
+        fallbackPayload.additional_info = fallbackPayload.additional_information;
+        delete fallbackPayload.additional_information;
+      }
+      created = await api('/public/farmers',{
+        method:'POST',
+        body:JSON.stringify(fallbackPayload)
+      });
+    }
+
+    profile.conversion = {
+      farmer_id: created.id || null,
+      farmer_reference: created.reference || null,
+      farmer_name: payload.farm_name,
+      converted_at: new Date().toISOString(),
+      linked_existing_record: false
+    };
+    profile.timeline = Array.isArray(profile.timeline) ? profile.timeline : [];
+    profile.timeline.unshift({
+      at: new Date().toISOString(),
+      type: 'Farmer conversion',
+      description: `Created farmer profile ${created.reference || created.id || payload.farm_name}`
+    });
+
+    await api(`/admin/entrepreneurs/${applicantId}`,{
+      method:'PATCH',
+      body:JSON.stringify({
+        status:'Marketplace Ready',
+        internal_notes:serializeConversionProfile(profile)
+      })
+    });
+
+    toast(`Farmer profile created: ${created.reference || payload.farm_name}`);
+    closeDrawer();
+    await loadResource('entrepreneurs');
+
+    if (created.id && confirm('Farmer profile created successfully. Open the new farmer record now?')) {
+      await showView('farmers');
+      setTimeout(()=>openRecord('farmers',Number(created.id)),300);
+    }
+  };
+
+  const previousAgriOpenRecord = window.openRecord;
+
+  window.openRecord = async function(resource,id) {
+    await previousAgriOpenRecord(resource,id);
+    if (resource !== 'entrepreneurs') return;
+
+    const formActions = document.querySelector('#drawerBody .agri-profile-footer, #drawerBody .form-actions');
+    if (!formActions || document.getElementById('convertAgriToFarmer')) return;
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.id = 'convertAgriToFarmer';
+    button.className = 'btn btn-convert-farmer';
+    button.textContent = 'Convert to Farmer';
+    button.onclick = () => convertApplicantToFarmer(Number(id));
+    formActions.insertBefore(button,formActions.firstChild);
+  };
+})();

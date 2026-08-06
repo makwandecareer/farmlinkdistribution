@@ -332,3 +332,6 @@ button{white-space:nowrap}
 .agri-profile-footer{position:sticky;bottom:0;background:#fff;border-top:1px solid rgba(8,62,44,.1);padding-top:12px;margin-top:22px}
 @media(max-width:700px){.agri-profile-summary{grid-template-columns:1fr}.agri-checklist{grid-template-columns:1fr}.agri-score-field{grid-template-columns:1fr}.agri-profile-header{display:block}}
 @media print{.agri-profile-tabs,.agri-profile-footer,.agri-communication-actions{display:none!important}.agri-profile-panel{display:block!important;page-break-inside:avoid}.agri-profile-panel:before{content:attr(data-panel);display:block;text-transform:capitalize;font-size:18px;font-weight:800;margin:18px 0 8px}}
+/* FARMLINK_AGRISTART_CONVERT_TO_FARMER_V1 */
+.btn-convert-farmer{background:#d19a2a!important;color:#071f16!important;border-color:#d19a2a!important;font-weight:800!important}
+.btn-convert-farmer:hover{filter:brightness(.96)}
