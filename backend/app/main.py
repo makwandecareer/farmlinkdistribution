@@ -16,6 +16,8 @@ from .security import hash_password, verify_password, create_access_token
 from .deps import current_user, ceo_user
 from .utils import make_reference, audit
 from .operations import router as operations_router
+from .funding_routes import router as funding_router
+from .paystack import router as paystack_router
 
 settings = get_settings()
 
@@ -58,6 +60,8 @@ app.add_middleware(
     expose_headers=["*"],
 )
 app.include_router(operations_router)
+app.include_router(funding_router)
+app.include_router(paystack_router)
 
 @app.get("/api/health")
 def health(): return {"status":"ok","service":settings.app_name,"environment":settings.environment}
@@ -284,6 +288,14 @@ if FRONTEND.exists():
     def admin_page(): return FileResponse(FRONTEND / "admin" / "index.html")
     @app.get("/admin/admin.css")
     def admin_css(): return FileResponse(FRONTEND / "admin" / "admin.css", media_type="text/css")
+    @app.get("/funding-integration-v2.css")
+    def funding_integration_v2_css(): return FileResponse(FRONTEND / "funding-integration-v2.css", media_type="text/css")
+    @app.get("/funding-integration-v2.js")
+    def funding_integration_v2_js(): return FileResponse(FRONTEND / "funding-integration-v2.js", media_type="application/javascript")
+    @app.get("/admin/funding-integration-v2.css")
+    def admin_funding_integration_v2_css(): return FileResponse(FRONTEND / "admin" / "funding-integration-v2.css", media_type="text/css")
+    @app.get("/admin/funding-integration-v2.js")
+    def admin_funding_integration_v2_js(): return FileResponse(FRONTEND / "admin" / "funding-integration-v2.js", media_type="application/javascript")
     @app.get("/admin/admin.js")
     def admin_js(): return FileResponse(FRONTEND / "admin" / "admin.js", media_type="application/javascript")
 

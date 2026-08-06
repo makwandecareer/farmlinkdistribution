@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from .config import get_settings
 from .database import SessionLocal, get_db
+from .funding_models import FundingServiceApplication
 from .models import (
     Invoice,
     MembershipApplication,
@@ -37,7 +38,7 @@ PAID_MEMBERSHIP_PRICES: dict[str, Decimal] = {
 
 
 class PaystackInitializeIn(BaseModel):
-    entity_type: Literal["invoice", "order", "membership"]
+    entity_type: Literal["invoice", "order", "membership", "funding_service"]
     entity_id: int = Field(gt=0)
     payer_email: EmailStr
     payer_name: str | None = Field(default=None, max_length=200)
@@ -85,6 +86,19 @@ def _resolve_charge(
             raise HTTPException(400, "The email does not match this order")
         return Decimal(str(order.quoted_amount)), order.business_name, order.email or email
 
+    if entity_type == "funding_service":
+        funding_service = db.get(FundingServiceApplication, entity_id)
+        if not funding_service:
+            raise HTTPException(404, "Funding service registration not found")
+        if funding_service.payment_status == "Paid":
+            raise HTTPException(409, "This funding service is already paid")
+        if funding_service.email.lower() != email:
+            raise HTTPException(400, "The email does not match this funding service")
+        return (
+            Decimal(str(funding_service.service_fee)),
+            funding_service.business_name or funding_service.applicant_name,
+            funding_service.email,
+        )
     membership = db.get(MembershipApplication, entity_id)
     if not membership:
         raise HTTPException(404, "Membership application not found")
@@ -113,6 +127,13 @@ def _find_or_create_payment(db: Session, tx: PaymentTransaction) -> Payment:
     elif tx.entity_type == "order":
         entity = db.get(Order, tx.entity_id)
         payer_name = entity.business_name if entity else payer_name
+    elif tx.entity_type == "funding_service":
+        entity = db.get(FundingServiceApplication, tx.entity_id)
+        payer_name = (
+            entity.business_name or entity.applicant_name
+            if entity
+            else payer_name
+        )
     elif tx.entity_type == "membership":
         entity = db.get(MembershipApplication, tx.entity_id)
         payer_name = entity.business_name if entity else payer_name
@@ -163,6 +184,20 @@ def _apply_success(db: Session, tx: PaymentTransaction, provider_data: dict) -> 
                 (membership.internal_notes or "")
                 + f"\nPaystack payment verified: {tx.reference}"
             ).strip()
+    elif tx.entity_type == "funding_service":
+        funding_service = db.get(FundingServiceApplication, tx.entity_id)
+        if funding_service:
+            funding_service.payment_status = "Paid"
+            funding_service.payment_method = (
+                f"Paystack - {provider_data.get('channel') or 'online'}"
+            )
+            funding_service.payment_reference = tx.reference
+            funding_service.payment_date = datetime.utcnow().date()
+            if funding_service.service_status in {
+                "Application received",
+                "Assessment scheduled",
+            }:
+                funding_service.service_status = "Ready to commence"
     elif tx.entity_type == "order":
         order = db.get(Order, tx.entity_id)
         if order and order.status in {"Pending", "Approved"}:

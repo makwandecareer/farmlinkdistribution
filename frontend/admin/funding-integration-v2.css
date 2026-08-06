@@ -1,0 +1,15 @@
+/* FarmLink integrated funding administration V2 */
+.fl-filters{display:grid;grid-template-columns:1fr 180px 190px;gap:10px}
+.fl-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.fl-stats article{background:#fff;border:1px solid rgba(8,62,44,.12);border-radius:16px;padding:17px}
+.fl-stats span,.fl-stats small{display:block;color:#66756e}.fl-stats strong{display:block;font-size:26px;color:#073827;margin:6px 0}
+.fl-table-wrap{overflow-x:auto}.fl-table-wrap td small{display:block;color:#66756e;margin-top:4px}
+.fl-progress{width:120px;height:8px;background:#e5ece8;border-radius:999px;overflow:hidden}.fl-progress i{display:block;height:100%;background:#d19a2a}
+.fl-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0}
+.fl-summary article{background:#f7f9f7;border:1px solid rgba(8,62,44,.1);border-radius:14px;padding:15px}
+.fl-summary span,.fl-summary small{display:block;color:#66756e}.fl-summary strong{display:block;color:#073827;margin:6px 0}
+.fl-docs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:20px}
+.fl-docs label{display:flex;gap:9px;align-items:center;background:#f7f9f7;border:1px solid rgba(8,62,44,.1);border-radius:12px;padding:13px}
+#flClientForm h3{margin:26px 0 12px;color:#073827}
+@media(max-width:1050px){.fl-stats{grid-template-columns:repeat(2,1fr)}.fl-summary{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:720px){.fl-filters,.fl-stats,.fl-summary,.fl-docs{grid-template-columns:1fr}}
