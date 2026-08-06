@@ -271,3 +271,26 @@ button{white-space:nowrap}
 
 /* FarmLink AgriStart statuses */
 .status.New,.status.Contacted,.status.Under-Review,.status.Mentorship-Assigned,.status.Funding-Support,.status.Business-Established,.status.Marketplace-Ready,.status.Closed{white-space:nowrap}
+/* FARMLINK_AGRISTART_PHASE2_CORE_V1 */
+.agri-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:0 0 18px}
+.agri-kpi-card{background:#fff;border:1px solid rgba(12,66,47,.12);border-radius:18px;padding:20px;box-shadow:0 12px 30px rgba(12,66,47,.05)}
+.agri-kpi-card span,.agri-kpi-card small{display:block;color:#66756e}
+.agri-kpi-card strong{display:block;font-size:30px;margin:8px 0;color:#073827}
+.agri-pipeline{display:grid;grid-template-columns:repeat(9,minmax(110px,1fr));gap:8px;overflow-x:auto;margin:0 0 18px;padding-bottom:4px}
+.agri-pipeline button{background:#f7f9f7;border:1px solid rgba(12,66,47,.12);border-radius:14px;padding:13px;text-align:left;cursor:pointer;min-width:120px}
+.agri-pipeline button:hover{border-color:#d19a2a;background:#fffaf0}
+.agri-pipeline strong,.agri-pipeline span{display:block}
+.agri-pipeline strong{font-size:21px;color:#073827}
+.agri-pipeline span{font-size:12px;color:#66756e;margin-top:4px}
+.agri-review-actions{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0}
+.agri-review-actions .btn{width:auto}
+.agri-recommendation{background:#f5f0e4;border-left:4px solid #d19a2a;border-radius:14px;padding:18px;margin:16px 0 22px}
+.agri-recommendation span{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#8a6a21;font-weight:800}
+.agri-recommendation h3{margin:7px 0 12px}
+.agri-recommendation div{display:flex;flex-wrap:wrap;gap:7px}
+.agri-recommendation em{font-style:normal;background:#fff;border:1px solid rgba(12,66,47,.12);padding:7px 10px;border-radius:999px;font-size:12px}
+.agri-form-actions{display:flex;flex-wrap:wrap;gap:8px}
+.agri-form-actions .btn{width:auto}
+@media(max-width:1000px){.agri-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.agri-kpi-grid{grid-template-columns:1fr}.agri-review-actions,.agri-form-actions{display:grid}.agri-review-actions .btn,.agri-form-actions .btn{width:100%}}
+@media print{body *{visibility:hidden!important}#drawer,#drawer *{visibility:visible!important}#drawer{position:absolute!important;inset:0!important;width:100%!important;max-width:none!important;background:#fff!important}.agri-review-actions,.agri-form-actions,#closeDrawer{display:none!important}}

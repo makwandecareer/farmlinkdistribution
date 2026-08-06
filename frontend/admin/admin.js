@@ -710,3 +710,271 @@ function setupShortcuts(){document.addEventListener('keydown',e=>{if(e.target.ma
 installIcons();setupTheme();setupGlobalSearch();setupNotifications();setupShortcuts();
 if(token)start();
 
+
+/* FARMLINK_AGRISTART_PHASE2_CORE_V1
+   Enhanced AgriStart administration: KPIs, pipeline, recommendations,
+   assignment, notes, review actions, print/PDF and email templates. */
+(() => {
+  const AGRI_STATUSES = [
+    'New',
+    'Under Review',
+    'Interview Scheduled',
+    'Approved',
+    'Programme Started',
+    'Mentorship',
+    'Funding Ready',
+    'Supplier Network',
+    'Marketplace Ready',
+    'Completed',
+    'Rejected',
+    'Closed'
+  ];
+
+  const escapeValue = value => typeof esc === 'function'
+    ? esc(value == null ? '' : String(value))
+    : String(value == null ? '' : value)
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;');
+
+  const recommendationFor = record => {
+    const interest = String(record.agricultural_interest || '').toLowerCase();
+    const support = String(record.support_required || '').toLowerCase();
+    const resources = String(record.current_resources || '').toLowerCase();
+
+    let programme = 'Agricultural Business Development Programme';
+    if (interest.includes('egg') || interest.includes('layer')) programme = 'Poultry and Egg Enterprise Programme';
+    else if (interest.includes('broiler') || interest.includes('poultry')) programme = 'Poultry Production Programme';
+    else if (interest.includes('vegetable') || interest.includes('hydropon')) programme = 'Horticulture Enterprise Programme';
+    else if (interest.includes('livestock') || interest.includes('goat') || interest.includes('sheep') || interest.includes('pig')) programme = 'Livestock Enterprise Programme';
+    else if (interest.includes('dairy')) programme = 'Dairy Enterprise Programme';
+    else if (interest.includes('crop') || interest.includes('fruit')) programme = 'Crop and Produce Enterprise Programme';
+
+    const needs = [];
+    if (support.includes('mentor')) needs.push('Mentorship');
+    if (support.includes('fund')) needs.push('Funding readiness');
+    if (support.includes('supplier')) needs.push('Supplier introductions');
+    if (support.includes('market')) needs.push('Market access');
+    if (support.includes('brand')) needs.push('Branding');
+    if (!resources.includes('land')) needs.push('Land or production-site planning');
+    if (!resources.includes('capital')) needs.push('Financial planning');
+    if (!needs.length) needs.push('Business assessment', 'Commercial-readiness planning');
+
+    return { programme, needs: [...new Set(needs)].slice(0,6) };
+  };
+
+  const emailTemplate = (record, type) => {
+    const name = record.full_name || 'Applicant';
+    const reference = record.reference || '';
+    const templates = {
+      received: {
+        subject: `FarmLink AgriStart application received - ${reference}`,
+        body: `Dear ${name},\n\nThank you for applying to the FarmLink Agricultural Entrepreneurship Programme. Your application has been received successfully under reference ${reference}.\n\nOur team will review your qualification, agricultural interest, available resources and support requirements. We will contact you if additional information is required.\n\nKind regards,\nFarmLink Distribution`
+      },
+      information: {
+        subject: `Additional information required - ${reference}`,
+        body: `Dear ${name},\n\nWe are reviewing your FarmLink AgriStart application (${reference}) and require additional information before we can proceed.\n\nPlease reply with the requested supporting information and any relevant documents.\n\nKind regards,\nFarmLink Distribution`
+      },
+      interview: {
+        subject: `FarmLink AgriStart interview invitation - ${reference}`,
+        body: `Dear ${name},\n\nYour FarmLink AgriStart application has progressed to the interview stage. Please reply with your availability so that we can schedule a programme assessment.\n\nKind regards,\nFarmLink Distribution`
+      },
+      approved: {
+        subject: `FarmLink AgriStart application approved - ${reference}`,
+        body: `Dear ${name},\n\nCongratulations. Your application to the FarmLink Agricultural Entrepreneurship Programme has been approved.\n\nOur team will contact you regarding onboarding, mentorship and the next steps in developing your agricultural enterprise.\n\nKind regards,\nFarmLink Distribution`
+      },
+      declined: {
+        subject: `FarmLink AgriStart application outcome - ${reference}`,
+        body: `Dear ${name},\n\nThank you for applying to FarmLink AgriStart. After reviewing your application, we are unable to approve it at this stage.\n\nYou may submit a new application when the outstanding requirements have been addressed.\n\nKind regards,\nFarmLink Distribution`
+      }
+    };
+    return templates[type];
+  };
+
+  const openEmail = (record,type) => {
+    const template = emailTemplate(record,type);
+    const href = `mailto:${encodeURIComponent(record.email || '')}?subject=${encodeURIComponent(template.subject)}&body=${encodeURIComponent(template.body)}`;
+    window.location.href = href;
+  };
+
+  const originalLoadResource = loadResource;
+  loadResource = async function(resource) {
+    if (resource !== 'entrepreneurs') return originalLoadResource(resource);
+
+    const view = $('#entrepreneurs');
+    view.innerHTML = `
+      <div class="page-head">
+        <div>
+          <span class="kicker">Programme management</span>
+          <h2>Agricultural entrepreneurship applications</h2>
+          <p class="muted">Manage applicants from registration through mentorship, funding readiness and marketplace entry.</p>
+        </div>
+        <div class="toolbar">
+          <input id="entrepreneursSearch" placeholder="Search applicants">
+          <select id="entrepreneursProvince">${provinceOptions()}</select>
+          <select id="entrepreneursStatus">
+            <option value="all">All stages</option>
+            ${AGRI_STATUSES.map(x=>`<option>${x}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div id="agriKpis" class="agri-kpi-grid"></div>
+      <div id="agriPipeline" class="agri-pipeline"></div>
+      <div class="panel table-wrap"><div id="entrepreneursTable"></div></div>`;
+
+    let allItems = [];
+
+    const render = async () => {
+      const query = $('#entrepreneursSearch').value;
+      const selectedStatus = $('#entrepreneursStatus').value;
+      const selectedProvince = $('#entrepreneursProvince').value || 'all';
+      const data = await api(`/admin/entrepreneurs?q=${encodeURIComponent(query)}&status=${encodeURIComponent(selectedStatus)}`);
+      allItems = data.items || [];
+      const items = allItems.filter(r => selectedProvince === 'all' || provinceOf(r) === selectedProvince);
+
+      const total = items.length;
+      const approved = items.filter(r => ['Approved','Programme Started','Mentorship','Funding Ready','Supplier Network','Marketplace Ready','Completed'].includes(r.status)).length;
+      const active = items.filter(r => !['Completed','Rejected','Closed'].includes(r.status)).length;
+      const marketplaceReady = items.filter(r => ['Marketplace Ready','Completed'].includes(r.status)).length;
+
+      $('#agriKpis').innerHTML = [
+        ['Total applications',total,'All matching records'],
+        ['Approved or active',approved,'Progressing through programme'],
+        ['Open pipeline',active,'Require administration'],
+        ['Marketplace ready',marketplaceReady,'Ready for farmer conversion']
+      ].map(([label,value,note])=>`
+        <article class="agri-kpi-card">
+          <span>${escapeValue(label)}</span>
+          <strong>${Number(value).toLocaleString()}</strong>
+          <small>${escapeValue(note)}</small>
+        </article>`).join('');
+
+      $('#agriPipeline').innerHTML = AGRI_STATUSES.slice(0,9).map(status=>{
+        const count = items.filter(r=>r.status===status).length;
+        return `<button type="button" data-agri-stage="${escapeValue(status)}"><strong>${count}</strong><span>${escapeValue(status)}</span></button>`;
+      }).join('');
+
+      $('#agriPipeline').querySelectorAll('[data-agri-stage]').forEach(button=>{
+        button.onclick=()=>{
+          $('#entrepreneursStatus').value=button.dataset.agriStage;
+          render();
+        };
+      });
+
+      const columns = ['Applicant','Qualification','Interest','Province','Stage','Assigned',''];
+      const rows = items.map(r=>[
+        `<strong>${escapeValue(r.full_name)}</strong><div class="ref">${escapeValue(r.reference)}</div><small>${escapeValue(r.email||'')}</small>`,
+        escapeValue(r.qualification),
+        escapeValue(r.agricultural_interest),
+        escapeValue(r.province),
+        badge(r.status),
+        escapeValue(r.assigned_to?.full_name||'Unassigned'),
+        `<button class="link-btn" onclick="openRecord('entrepreneurs',${Number(r.id)})">Review</button>`
+      ]);
+
+      $('#entrepreneursTable').innerHTML = rows.length
+        ? table(columns,rows)
+        : empty('No AgriStart applications match the selected filters.');
+    };
+
+    $('#entrepreneursSearch').oninput=debounce(render,250);
+    $('#entrepreneursProvince').onchange=render;
+    $('#entrepreneursStatus').onchange=render;
+    await render();
+  };
+
+  const originalOpenRecord = window.openRecord;
+  window.openRecord = async function(resource,id) {
+    if (resource !== 'entrepreneurs') return originalOpenRecord(resource,id);
+
+    const [record,users] = await Promise.all([
+      api(`/admin/entrepreneurs/${id}`),
+      api('/admin/users')
+    ]);
+
+    const recommendation = recommendationFor(record);
+    const excluded = ['id','assigned_to_id','internal_notes','created_at','updated_at','assigned_to'];
+    const fields = Object.entries(record).filter(([key])=>!excluded.includes(key));
+
+    $('#drawerBody').innerHTML = `
+      <span class="kicker">AgriStart applicant</span>
+      <h2>${escapeValue(record.full_name)}</h2>
+      <p class="ref">${escapeValue(record.reference)}</p>
+
+      <div class="agri-review-actions">
+        <button type="button" class="btn btn-secondary" id="agriEmailReceived">Acknowledgement</button>
+        <button type="button" class="btn btn-secondary" id="agriRequestInfo">Request information</button>
+        <button type="button" class="btn btn-secondary" id="agriInviteInterview">Interview invitation</button>
+        <button type="button" class="btn btn-secondary" id="agriPrint">Print / Save PDF</button>
+      </div>
+
+      <section class="agri-recommendation">
+        <span>Programme recommendation</span>
+        <h3>${escapeValue(recommendation.programme)}</h3>
+        <div>${recommendation.needs.map(x=>`<em>${escapeValue(x)}</em>`).join('')}</div>
+      </section>
+
+      <div class="detail-grid">
+        ${fields.map(([key,value])=>`
+          <div class="detail">
+            <span>${escapeValue(key.replaceAll('_',' '))}</span>
+            <strong>${escapeValue(value==null?'Not supplied':value)}</strong>
+          </div>`).join('')}
+      </div>
+
+      <form id="recordForm">
+        <div class="form-grid">
+          <label>Programme stage
+            <select id="recordStatus">
+              ${AGRI_STATUSES.map(status=>`<option ${record.status===status?'selected':''}>${escapeValue(status)}</option>`).join('')}
+            </select>
+          </label>
+          <label>Assigned administrator
+            <select id="recordOwner">
+              <option value="">Unassigned</option>
+              ${users.filter(u=>u.is_active).map(u=>`<option value="${Number(u.id)}" ${record.assigned_to_id===u.id?'selected':''}>${escapeValue(u.full_name)}</option>`).join('')}
+            </select>
+          </label>
+          <label class="full">Internal case notes
+            <textarea id="internalNotes" rows="7" placeholder="Record interviews, resources, support requirements and next actions.">${escapeValue(record.internal_notes||'')}</textarea>
+          </label>
+        </div>
+        <div class="form-actions agri-form-actions">
+          <button type="button" class="btn btn-secondary" id="agriReject">Reject</button>
+          <button type="button" class="btn btn-secondary" id="agriApprove">Approve</button>
+          <button type="button" class="btn btn-secondary" onclick="closeDrawer()">Cancel</button>
+          <button class="btn btn-primary">Save changes</button>
+        </div>
+      </form>`;
+
+    openDrawer();
+
+    $('#agriEmailReceived').onclick=()=>openEmail(record,'received');
+    $('#agriRequestInfo').onclick=()=>openEmail(record,'information');
+    $('#agriInviteInterview').onclick=()=>openEmail(record,'interview');
+    $('#agriPrint').onclick=()=>window.print();
+
+    $('#agriApprove').onclick=()=>{
+      $('#recordStatus').value='Approved';
+      openEmail(record,'approved');
+    };
+    $('#agriReject').onclick=()=>{
+      $('#recordStatus').value='Rejected';
+      openEmail(record,'declined');
+    };
+
+    $('#recordForm').onsubmit=async event=>{
+      event.preventDefault();
+      const payload={
+        status:$('#recordStatus').value,
+        assigned_to_id:$('#recordOwner').value?Number($('#recordOwner').value):null,
+        internal_notes:$('#internalNotes').value
+      };
+      await api(`/admin/entrepreneurs/${id}`,{method:'PATCH',body:JSON.stringify(payload)});
+      toast('AgriStart record updated');
+      closeDrawer();
+      loadResource('entrepreneurs');
+    };
+  };
+})();
