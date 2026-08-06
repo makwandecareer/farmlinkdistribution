@@ -1,0 +1,165 @@
+/* FarmLink Homepage Header and Marketplace Alignment Fix V1 */
+.farmlink-final header,
+.farmlink-final .site-header,
+.farmlink-final .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(7, 56, 39, 0.10);
+}
+
+.farmlink-final header .container,
+.farmlink-final .site-header .container,
+.farmlink-final .topbar .container {
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 28px;
+}
+
+.farmlink-final header .logo,
+.farmlink-final .site-header .logo,
+.farmlink-final .brand {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+.farmlink-final header .logo img,
+.farmlink-final .site-header .logo img,
+.farmlink-final .brand img {
+  width: auto;
+  max-width: 92px;
+  max-height: 62px;
+  object-fit: contain;
+}
+
+.farmlink-final header nav,
+.farmlink-final .site-header nav,
+.farmlink-final .main-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(18px, 2vw, 34px);
+  min-width: 0;
+}
+
+.farmlink-final header nav a,
+.farmlink-final .site-header nav a,
+.farmlink-final .main-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: #17372b;
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.farmlink-final header nav a:hover,
+.farmlink-final .site-header nav a:hover,
+.farmlink-final .main-nav a:hover {
+  color: #0b5b3f;
+}
+
+.farmlink-final header .button,
+.farmlink-final .site-header .button,
+.farmlink-final .header-cta {
+  justify-self: end;
+  min-width: 128px;
+  min-height: 50px;
+  padding: 12px 22px;
+  border-radius: 999px;
+  text-align: center;
+  line-height: 1.15;
+}
+
+.p4-api-error {
+  display: grid;
+  gap: 8px;
+  border-color: #e7c9c3;
+  background: #fff8f6;
+  color: #7b3328;
+}
+
+.p4-api-error strong,
+.p4-api-error span {
+  display: block;
+}
+
+@media (max-width: 1180px) {
+  .farmlink-final header .container,
+  .farmlink-final .site-header .container,
+  .farmlink-final .topbar .container {
+    grid-template-columns: 110px minmax(0, 1fr) auto;
+    gap: 16px;
+  }
+
+  .farmlink-final header nav,
+  .farmlink-final .site-header nav,
+  .farmlink-final .main-nav {
+    gap: 14px;
+  }
+
+  .farmlink-final header nav a,
+  .farmlink-final .site-header nav a,
+  .farmlink-final .main-nav a {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 940px) {
+  .farmlink-final header .container,
+  .farmlink-final .site-header .container,
+  .farmlink-final .topbar .container {
+    grid-template-columns: auto auto;
+  }
+
+  .farmlink-final header nav,
+  .farmlink-final .site-header nav,
+  .farmlink-final .main-nav {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding: 0 0 12px;
+    scrollbar-width: thin;
+  }
+
+  .farmlink-final header .button,
+  .farmlink-final .site-header .button,
+  .farmlink-final .header-cta {
+    min-width: 116px;
+  }
+}
+
+@media (max-width: 620px) {
+  .farmlink-final header .container,
+  .farmlink-final .site-header .container,
+  .farmlink-final .topbar .container {
+    width: min(100% - 24px, 1180px);
+    min-height: 68px;
+  }
+
+  .farmlink-final header .logo img,
+  .farmlink-final .site-header .logo img,
+  .farmlink-final .brand img {
+    max-width: 76px;
+    max-height: 52px;
+  }
+
+  .farmlink-final header .button,
+  .farmlink-final .site-header .button,
+  .farmlink-final .header-cta {
+    min-height: 44px;
+    min-width: 104px;
+    padding: 10px 15px;
+    font-size: 12px;
+  }
+}
