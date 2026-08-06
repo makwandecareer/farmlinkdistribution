@@ -30,3 +30,232 @@
 .funding-readiness-card li strong,.funding-readiness-card li span{display:block}
 .funding-readiness-card li span{color:rgba(255,255,255,.74);font-size:14px;margin-top:3px}
 @media(max-width:850px){.funding-readiness-layout{grid-template-columns:1fr}.funding-readiness-card{padding:26px}}
+/* FARMLINK_FUNDING_READINESS_REDESIGN_V2 */
+.funding-readiness-section{
+  position:relative;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 12% 18%,rgba(209,154,42,.11),transparent 28%),
+    radial-gradient(circle at 88% 82%,rgba(7,56,39,.08),transparent 32%),
+    linear-gradient(180deg,#fbfcfa 0%,#f4f7f4 100%);
+  padding:110px 0;
+}
+
+.funding-readiness-section:before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background-image:
+    linear-gradient(rgba(7,56,39,.035) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(7,56,39,.035) 1px,transparent 1px);
+  background-size:42px 42px;
+  mask-image:linear-gradient(to bottom,rgba(0,0,0,.45),transparent 80%);
+  pointer-events:none;
+}
+
+.funding-readiness-layout{
+  position:relative;
+  z-index:1;
+  grid-template-columns:minmax(0,1.1fr) minmax(420px,.9fr);
+  gap:72px;
+  align-items:center;
+}
+
+.funding-readiness-copy{
+  max-width:760px;
+}
+
+.funding-readiness-copy .eyebrow{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:18px;
+}
+
+.funding-readiness-copy .eyebrow:before{
+  content:"";
+  width:34px;
+  height:2px;
+  background:#d19a2a;
+}
+
+.funding-readiness-copy h2{
+  max-width:720px;
+  font-size:clamp(42px,5vw,72px);
+  line-height:1.02;
+  letter-spacing:-.04em;
+  margin-bottom:24px;
+}
+
+.funding-readiness-copy .lead{
+  max-width:690px;
+  font-size:18px;
+  line-height:1.75;
+  color:#43574d;
+}
+
+.funding-readiness-points{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+  margin:30px 0 22px;
+}
+
+.funding-readiness-points span{
+  position:relative;
+  display:flex;
+  align-items:center;
+  min-height:58px;
+  padding:14px 16px 14px 46px;
+  border-radius:16px;
+  background:rgba(255,255,255,.88);
+  border:1px solid rgba(7,56,39,.11);
+  box-shadow:0 10px 24px rgba(7,56,39,.05);
+  font-size:14px;
+}
+
+.funding-readiness-points span:before{
+  content:"";
+  position:absolute;
+  left:16px;
+  top:50%;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  transform:translateY(-50%);
+  background:#d19a2a;
+  box-shadow:inset 0 0 0 5px #f8ebc9;
+}
+
+.funding-note{
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
+  max-width:690px;
+  padding:14px 16px;
+  border-left:3px solid #d19a2a;
+  border-radius:0 12px 12px 0;
+  background:rgba(255,255,255,.7);
+  font-size:13px;
+  line-height:1.6;
+}
+
+.funding-readiness-card{
+  position:relative;
+  min-height:580px;
+  padding:38px;
+  border-radius:30px;
+  background:
+    linear-gradient(145deg,rgba(255,255,255,.05),transparent 45%),
+    #073827;
+  box-shadow:
+    0 34px 80px rgba(7,56,39,.24),
+    inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+.funding-readiness-card:before{
+  content:"";
+  position:absolute;
+  top:-18px;
+  right:-18px;
+  width:120px;
+  height:120px;
+  border-radius:50%;
+  background:rgba(209,154,42,.14);
+  filter:blur(2px);
+}
+
+.funding-readiness-card .eyebrow{
+  position:relative;
+  z-index:1;
+  margin-bottom:22px;
+}
+
+.funding-readiness-card ol{
+  position:relative;
+  z-index:1;
+  gap:0;
+  margin:0 0 30px;
+}
+
+.funding-readiness-card li{
+  position:relative;
+  grid-template-columns:44px 1fr;
+  gap:16px;
+  padding:0 0 26px;
+}
+
+.funding-readiness-card li:not(:last-child):after{
+  content:"";
+  position:absolute;
+  left:21px;
+  top:42px;
+  bottom:4px;
+  width:2px;
+  background:linear-gradient(#d19a2a,rgba(209,154,42,.18));
+}
+
+.funding-readiness-card li:before{
+  position:relative;
+  z-index:2;
+  width:42px;
+  height:42px;
+  font-size:15px;
+  box-shadow:0 8px 18px rgba(0,0,0,.15);
+}
+
+.funding-readiness-card li strong{
+  font-size:16px;
+  color:#fff;
+  margin-top:2px;
+}
+
+.funding-readiness-card li span{
+  max-width:320px;
+  margin-top:6px;
+  font-size:14px;
+  line-height:1.55;
+}
+
+.funding-readiness-card .button{
+  position:relative;
+  z-index:1;
+  min-height:54px;
+  border-radius:14px;
+  font-size:15px;
+  box-shadow:0 12px 24px rgba(0,0,0,.14);
+}
+
+@media(max-width:1100px){
+  .funding-readiness-layout{
+    grid-template-columns:1fr;
+    gap:42px;
+  }
+
+  .funding-readiness-copy{
+    max-width:none;
+  }
+
+  .funding-readiness-card{
+    min-height:auto;
+  }
+}
+
+@media(max-width:760px){
+  .funding-readiness-section{
+    padding:76px 0;
+  }
+
+  .funding-readiness-points{
+    grid-template-columns:1fr;
+  }
+
+  .funding-readiness-card{
+    padding:28px 22px;
+    border-radius:24px;
+  }
+
+  .funding-readiness-copy h2{
+    font-size:clamp(38px,11vw,54px);
+  }
+}
