@@ -36,15 +36,15 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title=settings.app_name, version="1.0.0", lifespan=lifespan)
 PRODUCTION_CORS_ORIGINS = {
-    "https://www.farmlinkdistribution.co.za",
     "https://farmlinkdistribution.co.za",
-    "https://farmlinkdistribution-1ndv.onrender.com",
-    "https://farmlinkdistribution-web.onrender.com",
-    "http://localhost:3000",
-    "http://localhost:5173",
+    "https://www.farmlinkdistribution.co.za",
+    "http://farmlinkdistribution.co.za",
+    "http://www.farmlinkdistribution.co.za",
     "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
 }
-
 configured_origins = {
     str(origin).strip().rstrip("/")
     for origin in (settings.cors_origin_list or [])
@@ -68,7 +68,14 @@ app.include_router(phase4_router)
 app.include_router(phase5_router)
 app.include_router(funding_router)
 app.include_router(paystack_router)
-
+
+@app.get("/api/health/deployment")
+def deployment_health():
+    return {
+        "status": "ok",
+        "phase4_router": True,
+        "cors_origins": allowed_origins,
+    }
 @app.get("/api/health")
 def health(): return {"status":"ok","service":settings.app_name,"environment":settings.environment}
 
