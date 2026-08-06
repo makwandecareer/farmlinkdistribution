@@ -491,3 +491,28 @@ button{white-space:nowrap}
 .agri-mentor-task-footer{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .agri-mentor-task-footer select{max-width:190px}
 @media(max-width:760px){.agri-mentor-summary{grid-template-columns:1fr}.agri-mentor-section-head,.agri-mentor-card>div:first-child,.agri-mentor-task-footer{display:grid}.agri-mentor-section-head .btn{width:100%}}
+/* FARMLINK_FUNDING_READINESS_ADMIN_V1 */
+.funding-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:0 0 18px}
+.funding-kpi-card{background:#fff;border:1px solid rgba(8,62,44,.12);border-radius:18px;padding:20px;box-shadow:0 12px 30px rgba(8,62,44,.05)}
+.funding-kpi-card span,.funding-kpi-card small{display:block;color:#66756e}
+.funding-kpi-card strong{display:block;font-size:30px;color:#073827;margin:8px 0}
+.funding-progress{width:150px;height:9px;border-radius:999px;background:#e5ece8;overflow:hidden;margin-bottom:6px}
+.funding-progress i{display:block;height:100%;background:#d19a2a;border-radius:999px}
+.funding-record-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}
+.funding-record-summary article{background:#f7f9f7;border:1px solid rgba(8,62,44,.1);border-radius:14px;padding:16px}
+.funding-record-summary span,.funding-record-summary small{display:block;color:#66756e}
+.funding-record-summary strong{display:block;font-size:20px;color:#073827;margin:5px 0}
+.funding-document-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:20px}
+.funding-document-grid label{display:flex;align-items:center;gap:10px;background:#f7f9f7;border:1px solid rgba(8,62,44,.1);border-radius:12px;padding:13px}
+.funding-application-head{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:28px 0 12px}
+.funding-application-head h3{margin:3px 0 0}
+.funding-application-head .btn{width:auto}
+.funding-application-list{display:grid;gap:10px}
+.funding-application-card{position:relative;background:#fff;border:1px solid rgba(8,62,44,.12);border-radius:14px;padding:15px}
+.funding-application-card>div{display:flex;justify-content:space-between;gap:16px}
+.funding-application-card strong,.funding-application-card span,.funding-application-card small{display:block}
+.funding-application-card span,.funding-application-card small{color:#66756e}
+.funding-application-card p{margin:10px 0}
+.funding-application-card .link-btn{position:absolute;right:14px;bottom:12px}
+@media(max-width:1000px){.funding-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.funding-document-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.funding-kpi-grid,.funding-record-summary,.funding-document-grid{grid-template-columns:1fr}.funding-application-head{display:grid}.funding-application-head .btn{width:100%}}

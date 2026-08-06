@@ -82,9 +82,9 @@ function logout(){localStorage.removeItem('farmlink_token');token='';currentUser
 $('#logout').onclick=logout;
 $('#loginForm').onsubmit=async e=>{e.preventDefault();$('#loginError').textContent='';try{const d=await api('/auth/login',{method:'POST',body:JSON.stringify({email:$('#loginEmail').value,password:$('#loginPassword').value})});token=d.access_token;localStorage.setItem('farmlink_token',token);currentUser=d.user;await start()}catch(err){$('#loginError').textContent=err.message}};
 async function start(){try{currentUser=currentUser||await api('/auth/me');$('#loginScreen').classList.add('hidden');$('#app').classList.remove('hidden');$('#sideName').textContent=currentUser.full_name;$('#sideRole').textContent=currentUser.job_title;const initials=currentUser.full_name.split(' ').map(x=>x[0]).slice(0,2).join('');$('#avatar').textContent=initials;$('#topAvatar').textContent=initials;$('#topName').textContent=currentUser.full_name;$('#topRole').textContent=`${currentUser.job_title||'Administrator'} \u00B7 ${String(currentUser.role||'ADMIN').toUpperCase()}`;$('#usersNav').style.display=isCEO()?'flex':'none';if(currentUser.must_change_password)setTimeout(openPasswordModal,300);await showView('dashboard')}catch(e){logout()}}
-const titles={dashboard:'Executive overview',farmers:'Farmer applications',buyers:'Business buyers',orders:'Bulk orders',memberships:'Memberships & marketing',entrepreneurs:'Agricultural entrepreneurship',inventory:'Inventory management',logistics:'Logistics & dispatch',quality:'Quality control',finance:'Finance centre',payments:'Payment records',notifications:'Communications',documents:'Document centre',users:'Administrator management',audit:'Audit trail',marketplace:'Marketplace control'};
+const titles={dashboard:'Executive overview',farmers:'Farmer applications',buyers:'Business buyers',orders:'Bulk orders',memberships:'Memberships & marketing',entrepreneurs:'Agricultural entrepreneurship',fundingcentre:'Funding readiness centre',inventory:'Inventory management',logistics:'Logistics & dispatch',quality:'Quality control',finance:'Finance centre',payments:'Payment records',notifications:'Communications',documents:'Document centre',users:'Administrator management',audit:'Audit trail',marketplace:'Marketplace control'};
 $$('#nav button').forEach(b=>b.onclick=()=>showView(b.dataset.view));$('#refresh').onclick=()=>showView($('.view.active').id);
-async function showView(name){$$('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name));$$('.view').forEach(v=>v.classList.toggle('active',v.id===name));$('#pageTitle').textContent=titles[name]||name;const loaders={dashboard:loadDashboard,farmers:()=>loadResource('farmers'),buyers:()=>loadResource('buyers'),orders:()=>loadResource('orders'),memberships:()=>loadResource('memberships'),entrepreneurs:()=>loadResource('entrepreneurs'),inventory:loadInventory,logistics:loadLogistics,quality:loadQuality,finance:loadFinance,payments:loadPayments,notifications:loadNotifications,documents:loadDocuments,users:loadUsers,audit:loadAudit,marketplace:loadMarketplace};try{await loaders[name]?.()}catch(e){toast(e.message,false)}}
+async function showView(name){$$('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name));$$('.view').forEach(v=>v.classList.toggle('active',v.id===name));$('#pageTitle').textContent=titles[name]||name;const loaders={dashboard:loadDashboard,farmers:()=>loadResource('farmers'),buyers:()=>loadResource('buyers'),orders:()=>loadResource('orders'),memberships:()=>loadResource('memberships'),entrepreneurs:()=>loadResource('entrepreneurs'),fundingcentre:loadFundingCentre,inventory:loadInventory,logistics:loadLogistics,quality:loadQuality,finance:loadFinance,payments:loadPayments,notifications:loadNotifications,documents:loadDocuments,users:loadUsers,audit:loadAudit,marketplace:loadMarketplace};try{await loaders[name]?.()}catch(e){toast(e.message,false)}}
 const badge=s=>`<span class="status ${esc(String(s).replaceAll(' ','-'))}">${esc(s)}</span>`;
 const empty=(m='No records available.',detail='New activity will appear here automatically.')=>`<div class="empty-state"><div><div class="empty-icon">\u2713</div><strong>${esc(m)}</strong><p>${esc(detail)}</p></div></div>`;
 function bars(series){const max=Math.max(...series.map(x=>Number(x.value)),1);return `<div class="chart">${series.map(x=>`<div class="chart-col"><div class="chart-bar" style="height:${Math.max(4,Number(x.value)/max*180)}px" title="${esc(x.value)}"></div><span>${esc(x.label)}</span></div>`).join('')}</div>`}
@@ -1884,3 +1884,272 @@ if(token)start();
     };
   };
 })();
+/* FARMLINK_FUNDING_READINESS_ADMIN_V1 */
+const FUNDING_PROFILE_PREFIX='AGRISTART_PROFILE_V2:';
+
+function fundingParseProfile(raw){
+  const text=String(raw||'');
+  if(!text.startsWith(FUNDING_PROFILE_PREFIX)){
+    return {funding:{},assessment:{},marketplace:{},timeline:[]};
+  }
+  try{
+    const profile=JSON.parse(text.slice(FUNDING_PROFILE_PREFIX.length));
+    profile.funding=profile.funding||{};
+    profile.assessment=profile.assessment||{};
+    profile.marketplace=profile.marketplace||{};
+    profile.timeline=Array.isArray(profile.timeline)?profile.timeline:[];
+    return profile;
+  }catch{
+    return {funding:{},assessment:{},marketplace:{},timeline:[]};
+  }
+}
+
+function fundingReadinessPercent(funding){
+  const keys=['business_plan','cash_flow','pitch_deck','company_registration','tax_status','bank_account'];
+  return Math.round(keys.filter(key=>Boolean(funding?.[key])).length/keys.length*100);
+}
+
+function fundingAmount(value){
+  const number=Number(value||0);
+  return Number.isFinite(number)&&number>0?`R ${number.toLocaleString('en-ZA')}`:'Not specified';
+}
+
+async function loadFundingCentre(){
+  const view=$('#fundingcentre');
+  view.innerHTML=`
+    <div class="page-head">
+      <div>
+        <span class="kicker">AgriStart operations</span>
+        <h2>Funding Readiness Centre</h2>
+        <p class="muted">Track funding readiness, outstanding documents, funding applications and outcomes for AgriStart participants.</p>
+      </div>
+      <div class="toolbar">
+        <input id="fundingSearch" placeholder="Search applicants">
+        <select id="fundingStatusFilter">
+          <option value="all">All funding statuses</option>
+          <option>Not started</option>
+          <option>Documents required</option>
+          <option>Funding ready</option>
+          <option>Application submitted</option>
+          <option>Under review</option>
+          <option>Approved</option>
+          <option>Declined</option>
+        </select>
+      </div>
+    </div>
+    <div id="fundingKpis" class="funding-kpi-grid"></div>
+    <div class="panel table-wrap"><div id="fundingTable"></div></div>`;
+
+  const render=async()=>{
+    const q=$('#fundingSearch').value;
+    const status=$('#fundingStatusFilter').value;
+    const response=await api(`/admin/entrepreneurs?q=${encodeURIComponent(q)}&status=all`);
+    const records=(response.items||[]).map(record=>{
+      const profile=fundingParseProfile(record.internal_notes);
+      const funding=profile.funding||{};
+      return {
+        ...record,
+        _profile:profile,
+        _funding:funding,
+        _readiness:fundingReadinessPercent(funding)
+      };
+    }).filter(record=>status==='all'||(record._funding.funding_status||'Not started')===status);
+
+    const total=records.length;
+    const ready=records.filter(record=>record._readiness===100||(record._funding.funding_status==='Funding ready')).length;
+    const submitted=records.filter(record=>['Application submitted','Under review'].includes(record._funding.funding_status)).length;
+    const approved=records.filter(record=>record._funding.funding_status==='Approved').length;
+
+    $('#fundingKpis').innerHTML=[
+      ['Total applicants',total,'AgriStart funding pipeline'],
+      ['Funding ready',ready,'Completed readiness file'],
+      ['Submitted or under review',submitted,'Active funding applications'],
+      ['Funding approved',approved,'Successful outcomes']
+    ].map(([label,value,note])=>`
+      <article class="funding-kpi-card">
+        <span>${esc(label)}</span>
+        <strong>${Number(value).toLocaleString()}</strong>
+        <small>${esc(note)}</small>
+      </article>`).join('');
+
+    const cols=['Applicant','Readiness','Funding status','Amount required','Purpose','Funder',''];
+    const rows=records.map(record=>[
+      `<strong>${esc(record.full_name)}</strong><div class="ref">${esc(record.reference)}</div><small>${esc(record.agricultural_interest||'')}</small>`,
+      `<div class="funding-progress"><i style="width:${record._readiness}%"></i></div><small>${record._readiness}% complete</small>`,
+      badge(record._funding.funding_status||'Not started'),
+      esc(fundingAmount(record._funding.amount_required)),
+      esc(record._funding.funding_purpose||'Not specified'),
+      esc(record._funding.funder_name||'Not assigned'),
+      `<button class="link-btn" onclick="openFundingRecord(${Number(record.id)})">Manage</button>`
+    ]);
+
+    $('#fundingTable').innerHTML=rows.length
+      ? table(cols,rows)
+      : empty('No funding records match the selected filters.');
+  };
+
+  $('#fundingSearch').oninput=debounce(render,250);
+  $('#fundingStatusFilter').onchange=render;
+  await render();
+}
+
+window.openFundingRecord=async function(id){
+  const record=await api(`/admin/entrepreneurs/${id}`);
+  const profile=fundingParseProfile(record.internal_notes);
+  const funding=profile.funding||{};
+  const applications=Array.isArray(funding.applications)?funding.applications:[];
+  const readiness=fundingReadinessPercent(funding);
+
+  $('#drawerBody').innerHTML=`
+    <span class="kicker">Funding readiness profile</span>
+    <h2>${esc(record.full_name)}</h2>
+    <p class="ref">${esc(record.reference)}</p>
+
+    <div class="funding-record-summary">
+      <article><span>Readiness</span><strong>${readiness}%</strong><small>Required documents completed</small></article>
+      <article><span>Funding status</span><strong>${esc(funding.funding_status||'Not started')}</strong><small>${esc(funding.funder_name||'No funder selected')}</small></article>
+      <article><span>Amount required</span><strong>${esc(fundingAmount(funding.amount_required))}</strong><small>${esc(funding.funding_purpose||'Purpose not recorded')}</small></article>
+    </div>
+
+    <form id="fundingRecordForm">
+      <div class="funding-document-grid">
+        ${[
+          ['business_plan','Business plan'],
+          ['cash_flow','Cash-flow projection'],
+          ['pitch_deck','Pitch deck'],
+          ['company_registration','Company registration'],
+          ['tax_status','Tax compliance'],
+          ['bank_account','Business bank account']
+        ].map(([key,label])=>`
+          <label><input id="funding_${key}" type="checkbox" ${funding[key]?'checked':''}><span>${label}</span></label>`).join('')}
+      </div>
+
+      <div class="form-grid">
+        <label>Amount required (R)<input id="fundingAmountRequired" type="number" min="0" step="0.01" value="${esc(funding.amount_required||'')}"></label>
+        <label>Funding purpose<input id="fundingPurpose" value="${esc(funding.funding_purpose||'')}"></label>
+        <label>Funding status
+          <select id="fundingStatus">
+            ${['Not started','Documents required','Funding ready','Application submitted','Under review','Approved','Declined'].map(x=>`<option ${funding.funding_status===x?'selected':''}>${x}</option>`).join('')}
+          </select>
+        </label>
+        <label>Funding source or programme<input id="funderName" value="${esc(funding.funder_name||'')}"></label>
+        <label>Funder contact person<input id="funderContact" value="${esc(funding.funder_contact||'')}"></label>
+        <label>Funder email<input id="funderEmail" type="email" value="${esc(funding.funder_email||'')}"></label>
+        <label>Application reference<input id="fundingReference" value="${esc(funding.application_reference||'')}"></label>
+        <label>Submission date<input id="fundingSubmissionDate" type="date" value="${esc(funding.submission_date||'')}"></label>
+        <label>Decision date<input id="fundingDecisionDate" type="date" value="${esc(funding.decision_date||'')}"></label>
+        <label>Next follow-up date<input id="fundingFollowUpDate" type="date" value="${esc(funding.follow_up_date||'')}"></label>
+        <label class="full">Outstanding documents<input id="fundingOutstanding" value="${esc(funding.outstanding_documents||'')}"></label>
+        <label class="full">Funding notes<textarea id="fundingNotesCentre" rows="7">${esc(funding.funding_notes||'')}</textarea></label>
+      </div>
+
+      <div class="funding-application-head">
+        <div><span class="kicker">Application history</span><h3>Funding applications</h3></div>
+        <button type="button" class="btn btn-secondary" id="addFundingApplication">Add application</button>
+      </div>
+      <div id="fundingApplicationsList" class="funding-application-list"></div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeDrawer()">Cancel</button>
+        <button class="btn btn-primary">Save funding profile</button>
+      </div>
+    </form>`;
+
+  openDrawer();
+
+  const renderApplications=()=>{
+    $('#fundingApplicationsList').innerHTML=applications.length
+      ? applications.map((application,index)=>`
+        <article class="funding-application-card">
+          <div>
+            <strong>${esc(application.funder||'Funding application')}</strong>
+            <span>${esc(application.status||'Not started')}</span>
+          </div>
+          <p>${esc(application.purpose||'')}</p>
+          <small>${application.submitted_at?new Date(application.submitted_at).toLocaleDateString('en-ZA'):'No submission date'} ${application.reference?`- ${esc(application.reference)}`:''}</small>
+          <button type="button" class="link-btn" data-delete-funding="${index}">Delete</button>
+        </article>`).join('')
+      : '<p class="muted">No funding applications recorded.</p>';
+
+    $$('[data-delete-funding]').forEach(button=>{
+      button.onclick=()=>{
+        applications.splice(Number(button.dataset.deleteFunding),1);
+        renderApplications();
+      };
+    });
+  };
+
+  $('#addFundingApplication').onclick=()=>{
+    const funder=prompt('Funding source or programme','');
+    if(!funder)return;
+    const purpose=prompt('Purpose of funding','');
+    if(purpose==null)return;
+    const reference=prompt('Application reference','');
+    if(reference==null)return;
+    const status=prompt('Status','Application submitted');
+    if(status==null)return;
+    applications.unshift({
+      funder:funder.trim(),
+      purpose:purpose.trim(),
+      reference:reference.trim(),
+      status:status.trim(),
+      submitted_at:new Date().toISOString()
+    });
+    renderApplications();
+  };
+
+  renderApplications();
+
+  $('#fundingRecordForm').onsubmit=async event=>{
+    event.preventDefault();
+
+    const previousStatus=funding.funding_status||'Not started';
+    funding.business_plan=$('#funding_business_plan').checked;
+    funding.cash_flow=$('#funding_cash_flow').checked;
+    funding.pitch_deck=$('#funding_pitch_deck').checked;
+    funding.company_registration=$('#funding_company_registration').checked;
+    funding.tax_status=$('#funding_tax_status').checked;
+    funding.bank_account=$('#funding_bank_account').checked;
+    funding.amount_required=$('#fundingAmountRequired').value?Number($('#fundingAmountRequired').value):null;
+    funding.funding_purpose=$('#fundingPurpose').value;
+    funding.funding_status=$('#fundingStatus').value;
+    funding.funder_name=$('#funderName').value;
+    funding.funder_contact=$('#funderContact').value;
+    funding.funder_email=$('#funderEmail').value;
+    funding.application_reference=$('#fundingReference').value;
+    funding.submission_date=$('#fundingSubmissionDate').value;
+    funding.decision_date=$('#fundingDecisionDate').value;
+    funding.follow_up_date=$('#fundingFollowUpDate').value;
+    funding.outstanding_documents=$('#fundingOutstanding').value;
+    funding.funding_notes=$('#fundingNotesCentre').value;
+    funding.applications=applications;
+
+    profile.funding=funding;
+    profile.timeline=Array.isArray(profile.timeline)?profile.timeline:[];
+
+    if(previousStatus!==funding.funding_status){
+      profile.timeline.unshift({
+        at:new Date().toISOString(),
+        type:'Funding',
+        description:`Funding status changed from ${previousStatus} to ${funding.funding_status}`
+      });
+    }else{
+      profile.timeline.unshift({
+        at:new Date().toISOString(),
+        type:'Funding',
+        description:'Funding readiness profile updated'
+      });
+    }
+
+    await api(`/admin/entrepreneurs/${id}`,{
+      method:'PATCH',
+      body:JSON.stringify({
+        internal_notes:FUNDING_PROFILE_PREFIX+JSON.stringify(profile)
+      })
+    });
+
+    toast('Funding readiness profile saved');
+    closeDrawer();
+    loadFundingCentre();
+  };
+};

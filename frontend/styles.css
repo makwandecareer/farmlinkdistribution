@@ -16,3 +16,17 @@
 .agristart-card h3{color:#fff;margin-top:0}
 .agristart-card p{color:rgba(255,255,255,.78)}
 @media(max-width:850px){.agristart-layout{grid-template-columns:1fr}.agristart-card{padding:26px}}
+/* FARMLINK_FUNDING_READINESS_PUBLIC_V1 */
+.funding-readiness-section{background:#fff}
+.funding-readiness-layout{display:grid;grid-template-columns:1.15fr .85fr;gap:42px;align-items:center}
+.funding-readiness-copy h2{max-width:780px}
+.funding-readiness-points{display:flex;flex-wrap:wrap;gap:10px;margin:24px 0 18px}
+.funding-readiness-points span{background:#f5f0e4;border:1px solid rgba(8,62,44,.12);border-radius:999px;padding:10px 14px;font-weight:700;color:#073827}
+.funding-note{font-size:13px;color:#66756e;max-width:760px}
+.funding-readiness-card{background:#073827;color:#fff;border-radius:24px;padding:32px;box-shadow:0 24px 60px rgba(7,56,39,.18)}
+.funding-readiness-card ol{display:grid;gap:16px;margin:20px 0 24px;padding:0;list-style:none;counter-reset:funding-step}
+.funding-readiness-card li{display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start;counter-increment:funding-step}
+.funding-readiness-card li:before{content:counter(funding-step);display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#d19a2a;color:#071f16;font-weight:800}
+.funding-readiness-card li strong,.funding-readiness-card li span{display:block}
+.funding-readiness-card li span{color:rgba(255,255,255,.74);font-size:14px;margin-top:3px}
+@media(max-width:850px){.funding-readiness-layout{grid-template-columns:1fr}.funding-readiness-card{padding:26px}}
