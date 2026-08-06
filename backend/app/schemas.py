@@ -86,3 +86,18 @@ class PaymentUpdate(BaseModel):
     external_reference: str | None = None
     proof_url: str | None = None
     notes: str | None = None
+
+# FarmLink AgriStart module
+class EntrepreneurshipCreate(BaseModel):
+    full_name: str = Field(min_length=2, max_length=200)
+    phone: str = Field(min_length=7, max_length=50)
+    email: EmailStr
+    province: str = Field(min_length=2, max_length=100)
+    municipality: str = Field(min_length=2, max_length=150)
+    institution: str = Field(min_length=2, max_length=200)
+    qualification: str = Field(min_length=2, max_length=200)
+    study_status: str = Field(min_length=2, max_length=100)
+    agricultural_interest: str = Field(min_length=2, max_length=150)
+    current_resources: str | None = None
+    support_required: str | None = None
+    business_idea: str = Field(min_length=20, max_length=5000)

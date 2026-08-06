@@ -317,3 +317,30 @@ class LoginAttempt(Base):
     ip_address: Mapped[str | None] = mapped_column(String(64), nullable=True)
     successful: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+# FarmLink AgriStart module
+from datetime import datetime as _agristart_datetime
+from sqlalchemy import Column as _ASColumn, Integer as _ASInteger, String as _ASString, Text as _ASText, DateTime as _ASDateTime, ForeignKey as _ASForeignKey
+
+class EntrepreneurshipApplication(Base):
+    __tablename__ = "entrepreneurship_applications"
+
+    id = _ASColumn(_ASInteger, primary_key=True)
+    reference = _ASColumn(_ASString(50), unique=True, index=True, nullable=False)
+    full_name = _ASColumn(_ASString(200), nullable=False)
+    phone = _ASColumn(_ASString(50), nullable=False)
+    email = _ASColumn(_ASString(255), nullable=False)
+    province = _ASColumn(_ASString(100), nullable=False)
+    municipality = _ASColumn(_ASString(150), nullable=False)
+    institution = _ASColumn(_ASString(200), nullable=False)
+    qualification = _ASColumn(_ASString(200), nullable=False)
+    study_status = _ASColumn(_ASString(100), nullable=False)
+    agricultural_interest = _ASColumn(_ASString(150), nullable=False)
+    current_resources = _ASColumn(_ASText, nullable=True)
+    support_required = _ASColumn(_ASText, nullable=True)
+    business_idea = _ASColumn(_ASText, nullable=False)
+    status = _ASColumn(_ASString(100), nullable=False, default="New")
+    assigned_to_id = _ASColumn(_ASInteger, _ASForeignKey("users.id"), nullable=True)
+    internal_notes = _ASColumn(_ASText, nullable=True)
+    created_at = _ASColumn(_ASDateTime, nullable=False, default=_agristart_datetime.utcnow)
+    updated_at = _ASColumn(_ASDateTime, nullable=False, default=_agristart_datetime.utcnow, onupdate=_agristart_datetime.utcnow)

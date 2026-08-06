@@ -268,3 +268,6 @@ button{white-space:nowrap}
   place-items: center;
   line-height: 1;
 }
+
+/* FarmLink AgriStart statuses */
+.status.New,.status.Contacted,.status.Under-Review,.status.Mentorship-Assigned,.status.Funding-Support,.status.Business-Established,.status.Marketplace-Ready,.status.Closed{white-space:nowrap}

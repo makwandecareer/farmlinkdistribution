@@ -10,8 +10,8 @@ from sqlalchemy import select, func, or_, desc
 from sqlalchemy.orm import Session
 from .config import get_settings
 from .database import Base, engine, get_db, SessionLocal
-from .models import User, UserRole, Farmer, Buyer, Order, MembershipApplication, Payment, AuditLog, LoginAttempt, InventoryLot
-from .schemas import LoginIn, ChangePasswordIn, UserCreate, UserUpdate, UserPasswordReset, UserOut, TokenOut, FarmerCreate, BuyerCreate, OrderCreate, MembershipCreate, RecordUpdate, PaymentCreate, PaymentUpdate
+from .models import User, UserRole, Farmer, Buyer, Order, MembershipApplication, EntrepreneurshipApplication, Payment, AuditLog, LoginAttempt, InventoryLot
+from .schemas import LoginIn, ChangePasswordIn, UserCreate, UserUpdate, UserPasswordReset, UserOut, TokenOut, FarmerCreate, BuyerCreate, OrderCreate, MembershipCreate, EntrepreneurshipCreate, RecordUpdate, PaymentCreate, PaymentUpdate
 from .security import hash_password, verify_password, create_access_token
 from .deps import current_user, ceo_user
 from .utils import make_reference, audit
@@ -98,8 +98,15 @@ def create_order(data: OrderCreate, request: Request, db: Session=Depends(get_db
 @app.post("/api/public/memberships", status_code=201)
 def create_membership(data: MembershipCreate, request: Request, db: Session=Depends(get_db)):
     rec=MembershipApplication(reference=make_reference("MEM"), **data.model_dump()); db.add(rec); db.flush(); audit(db,None,"Submitted membership application","membership",rec.id,{"reference":rec.reference},request.client.host if request.client else None); db.commit(); return {"id":rec.id,"reference":rec.reference,"status":rec.status}
+@app.post("/api/public/entrepreneurs", status_code=201)
+def create_entrepreneurship_application(data: EntrepreneurshipCreate, request: Request, db: Session=Depends(get_db)):
+    rec=EntrepreneurshipApplication(reference=make_reference("AGR"), **data.model_dump())
+    db.add(rec); db.flush()
+    audit(db,None,"Submitted agricultural entrepreneurship application","entrepreneur",rec.id,{"reference":rec.reference},request.client.host if request.client else None)
+    db.commit()
+    return {"id":rec.id,"reference":rec.reference,"status":rec.status}
 
-MODEL_MAP={"farmers":Farmer,"buyers":Buyer,"orders":Order,"memberships":MembershipApplication}
+MODEL_MAP={"farmers":Farmer,"buyers":Buyer,"orders":Order,"memberships":MembershipApplication,"entrepreneurs":EntrepreneurshipApplication}
 
 def serialize(rec):
     out={c.name:getattr(rec,c.name) for c in rec.__table__.columns}
@@ -960,7 +967,7 @@ def list_records(resource: str, q: str|None=None, status: str|None=None, limit:i
     if status and status!="all": stmt=stmt.where(model.status==status)
     if q:
         fields=[]
-        for name in ["reference","farm_name","business_name","contact_person","location","delivery_area","email","phone"]:
+        for name in ["reference","farm_name","business_name","contact_person","full_name","location","delivery_area","province","municipality","institution","qualification","agricultural_interest","email","phone"]:
             if hasattr(model,name): fields.append(getattr(model,name).ilike(f"%{q}%"))
         if fields: stmt=stmt.where(or_(*fields))
     total=db.scalar(select(func.count()).select_from(stmt.subquery())) or 0

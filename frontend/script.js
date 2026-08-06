@@ -34,3 +34,21 @@ get('farmerForm')?.addEventListener('submit',e=>{e.preventDefault();submit('/pub
 get('buyerForm')?.addEventListener('submit',e=>{e.preventDefault();submit('/public/buyers',{business_name:value('buyerBusiness'),contact_person:value('buyerContact'),phone:value('buyerPhone'),email:value('buyerEmail'),category:value('buyerType'),location:value('buyerLocation'),weekly_volume:value('buyerVolume'),egg_size:value('buyerEggSize')||null,packaging:value('buyerPackaging')||null,frequency:value('buyerFrequency'),notes:value('buyerNotes')||null},e.currentTarget)});
 get('orderForm')?.addEventListener('submit',e=>{e.preventDefault();submit('/public/orders',{business_name:value('businessName'),contact_person:value('contactPerson'),phone:value('phone'),email:value('email')||null,customer_type:value('customerType'),delivery_area:value('location'),egg_size:value('eggSize'),packaging:value('packaging'),quantity:value('quantity'),frequency:value('frequency'),required_date:value('requiredDate'),notes:value('notes')||null},e.currentTarget)});
 get('membershipForm')?.addEventListener('submit',e=>{e.preventDefault();submit('/public/memberships',{applicant_type:value('membershipApplicantType'),selected_service:value('membershipPlan'),business_name:value('membershipBusiness'),contact_person:value('membershipContact'),phone:value('membershipPhone'),email:value('membershipEmail'),location:value('membershipLocation'),preferred_payment_method:value('membershipPayment'),notes:value('membershipNotes')||null},e.currentTarget)});
+
+get('entrepreneurForm')?.addEventListener('submit',e=>{
+  e.preventDefault();
+  submit('/public/entrepreneurs',{
+    full_name:value('entrepreneurName'),
+    phone:value('entrepreneurPhone'),
+    email:value('entrepreneurEmail'),
+    province:value('entrepreneurProvince'),
+    municipality:value('entrepreneurMunicipality'),
+    institution:value('entrepreneurInstitution'),
+    qualification:value('entrepreneurQualification'),
+    study_status:value('entrepreneurStatus'),
+    agricultural_interest:value('entrepreneurInterest'),
+    current_resources:value('entrepreneurResources')||null,
+    support_required:value('entrepreneurSupport')||null,
+    business_idea:value('entrepreneurIdea')
+  },e.currentTarget)
+});
