@@ -978,3 +978,443 @@ if(token)start();
     };
   };
 })();
+/* FARMLINK_AGRISTART_APPLICANT_PROFILE_V2
+   Advanced applicant workspace built on the existing AgriStart record API.
+   Structured profile data is stored safely inside internal_notes. */
+(() => {
+  const PROFILE_PREFIX = 'AGRISTART_PROFILE_V2:';
+
+  const escProfile = value => typeof esc === 'function'
+    ? esc(value == null ? '' : String(value))
+    : String(value == null ? '' : value)
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;');
+
+  const emptyProfile = () => ({
+    version: 2,
+    case_notes: '',
+    assessment: {
+      business_idea: 0,
+      market_opportunity: 0,
+      resources: 0,
+      experience: 0,
+      commercial_readiness: 0,
+      recommendation: 'Assessment pending'
+    },
+    mentorship: {
+      mentor_name: '',
+      mentor_email: '',
+      start_date: '',
+      next_meeting: '',
+      objectives: '',
+      progress: 'Not started'
+    },
+    funding: {
+      business_plan: false,
+      cash_flow: false,
+      pitch_deck: false,
+      company_registration: false,
+      tax_status: false,
+      bank_account: false,
+      funding_status: 'Not started',
+      funding_notes: ''
+    },
+    marketplace: {
+      product: '',
+      production_capacity: '',
+      unit_price: '',
+      delivery_area: '',
+      packaging: '',
+      quality_status: 'Not assessed',
+      listing_status: 'Not ready'
+    },
+    communications: [],
+    timeline: []
+  });
+
+  const parseProfile = raw => {
+    const text = String(raw || '');
+    if (!text.startsWith(PROFILE_PREFIX)) {
+      const profile = emptyProfile();
+      profile.case_notes = text;
+      return profile;
+    }
+    try {
+      return {...emptyProfile(), ...JSON.parse(text.slice(PROFILE_PREFIX.length))};
+    } catch {
+      const profile = emptyProfile();
+      profile.case_notes = text;
+      return profile;
+    }
+  };
+
+  const serializeProfile = profile => PROFILE_PREFIX + JSON.stringify(profile);
+
+  const addTimeline = (profile,type,description) => {
+    profile.timeline = Array.isArray(profile.timeline) ? profile.timeline : [];
+    profile.timeline.unshift({
+      at: new Date().toISOString(),
+      type,
+      description
+    });
+    profile.timeline = profile.timeline.slice(0,100);
+  };
+
+  const addCommunication = (profile,type,subject) => {
+    profile.communications = Array.isArray(profile.communications) ? profile.communications : [];
+    profile.communications.unshift({
+      at: new Date().toISOString(),
+      type,
+      subject
+    });
+    profile.communications = profile.communications.slice(0,100);
+  };
+
+  const scoreTotal = assessment =>
+    ['business_idea','market_opportunity','resources','experience','commercial_readiness']
+      .reduce((sum,key)=>sum + Number(assessment[key] || 0),0);
+
+  const scoreLabel = total => {
+    if (total >= 80) return 'Commercially ready';
+    if (total >= 60) return 'Suitable for incubation';
+    if (total >= 40) return 'Requires structured development';
+    return 'Early-stage applicant';
+  };
+
+  const readinessPercent = funding => {
+    const keys=['business_plan','cash_flow','pitch_deck','company_registration','tax_status','bank_account'];
+    return Math.round(keys.filter(k=>funding[k]).length / keys.length * 100);
+  };
+
+  const renderTimeline = (record,profile) => {
+    const base = [
+      {at: record.created_at, type:'Application', description:'AgriStart application submitted'},
+      {at: record.updated_at, type:'Record', description:`Current programme stage: ${record.status || 'New'}`}
+    ].filter(x=>x.at);
+    const items = [...(profile.timeline || []), ...base]
+      .sort((a,b)=>new Date(b.at)-new Date(a.at));
+    return items.length ? items.map(item=>`
+      <div class="agri-timeline-item">
+        <i></i>
+        <div>
+          <strong>${escProfile(item.type)}</strong>
+          <span>${escProfile(item.description)}</span>
+          <small>${new Date(item.at).toLocaleString('en-ZA')}</small>
+        </div>
+      </div>`).join('') : '<p class="muted">No timeline activity yet.</p>';
+  };
+
+  const renderCommunications = profile => {
+    const items = profile.communications || [];
+    return items.length ? items.map(item=>`
+      <div class="agri-communication-item">
+        <div><strong>${escProfile(item.type)}</strong><span>${escProfile(item.subject)}</span></div>
+        <small>${new Date(item.at).toLocaleString('en-ZA')}</small>
+      </div>`).join('') : '<p class="muted">No communications logged yet.</p>';
+  };
+
+  const recommendationForProfile = record => {
+    if (typeof recommendationFor === 'function') return recommendationFor(record);
+    const interest = String(record.agricultural_interest || '').toLowerCase();
+    let programme='Agricultural Business Development Programme';
+    if (interest.includes('egg') || interest.includes('layer')) programme='Poultry and Egg Enterprise Programme';
+    else if (interest.includes('broiler') || interest.includes('poultry')) programme='Poultry Production Programme';
+    else if (interest.includes('vegetable') || interest.includes('hydropon')) programme='Horticulture Enterprise Programme';
+    else if (interest.includes('livestock') || interest.includes('goat') || interest.includes('sheep') || interest.includes('pig')) programme='Livestock Enterprise Programme';
+    return {programme,needs:['Business assessment','Commercial-readiness planning']};
+  };
+
+  const previousOpenRecord = window.openRecord;
+
+  window.openRecord = async function(resource,id) {
+    if (resource !== 'entrepreneurs') return previousOpenRecord(resource,id);
+
+    const [record,users] = await Promise.all([
+      api(`/admin/entrepreneurs/${id}`),
+      api('/admin/users')
+    ]);
+
+    const profile = parseProfile(record.internal_notes);
+    const recommendation = recommendationForProfile(record);
+    const total = scoreTotal(profile.assessment);
+    const fundingReadiness = readinessPercent(profile.funding);
+
+    const overviewFields = [
+      ['Reference',record.reference],
+      ['Full name',record.full_name],
+      ['Phone',record.phone],
+      ['Email',record.email],
+      ['Province',record.province],
+      ['Municipality',record.municipality],
+      ['Institution',record.institution],
+      ['Qualification',record.qualification],
+      ['Study status',record.study_status],
+      ['Agricultural interest',record.agricultural_interest],
+      ['Current resources',record.current_resources],
+      ['Support required',record.support_required],
+      ['Business idea',record.business_idea]
+    ];
+
+    $('#drawerBody').innerHTML = `
+      <div class="agri-profile-header">
+        <div>
+          <span class="kicker">AgriStart applicant profile</span>
+          <h2>${escProfile(record.full_name)}</h2>
+          <p class="ref">${escProfile(record.reference)}</p>
+        </div>
+        <div class="agri-profile-stage">${badge(record.status || 'New')}</div>
+      </div>
+
+      <div class="agri-profile-summary">
+        <article><span>Assessment score</span><strong id="agriProfileScore">${total}%</strong><small id="agriProfileScoreLabel">${escProfile(scoreLabel(total))}</small></article>
+        <article><span>Funding readiness</span><strong id="agriFundingReadiness">${fundingReadiness}%</strong><small>Required documents completed</small></article>
+        <article><span>Marketplace status</span><strong>${escProfile(profile.marketplace.listing_status)}</strong><small>${escProfile(profile.marketplace.quality_status)}</small></article>
+      </div>
+
+      <div class="agri-profile-recommendation">
+        <span>Recommended pathway</span>
+        <h3>${escProfile(recommendation.programme)}</h3>
+        <div>${recommendation.needs.map(x=>`<em>${escProfile(x)}</em>`).join('')}</div>
+      </div>
+
+      <nav class="agri-profile-tabs" id="agriProfileTabs">
+        <button type="button" class="active" data-tab="overview">Overview</button>
+        <button type="button" data-tab="assessment">Assessment</button>
+        <button type="button" data-tab="mentorship">Mentorship</button>
+        <button type="button" data-tab="funding">Funding</button>
+        <button type="button" data-tab="marketplace">Marketplace</button>
+        <button type="button" data-tab="communications">Communications</button>
+        <button type="button" data-tab="timeline">Timeline</button>
+      </nav>
+
+      <form id="agriProfileForm">
+        <section class="agri-profile-panel active" data-panel="overview">
+          <div class="detail-grid">
+            ${overviewFields.map(([label,value])=>`
+              <div class="detail ${label==='Business idea'?'full':''}">
+                <span>${escProfile(label)}</span>
+                <strong>${escProfile(value || 'Not supplied')}</strong>
+              </div>`).join('')}
+          </div>
+          <div class="form-grid agri-profile-controls">
+            <label>Programme stage
+              <select id="recordStatus">
+                ${['New','Under Review','Interview Scheduled','Approved','Programme Started','Mentorship','Funding Ready','Supplier Network','Marketplace Ready','Completed','Rejected','Closed'].map(status=>`<option ${record.status===status?'selected':''}>${escProfile(status)}</option>`).join('')}
+              </select>
+            </label>
+            <label>Assigned administrator
+              <select id="recordOwner">
+                <option value="">Unassigned</option>
+                ${users.filter(u=>u.is_active).map(u=>`<option value="${Number(u.id)}" ${record.assigned_to_id===u.id?'selected':''}>${escProfile(u.full_name)}</option>`).join('')}
+              </select>
+            </label>
+            <label class="full">Internal case notes
+              <textarea id="profileCaseNotes" rows="7">${escProfile(profile.case_notes || '')}</textarea>
+            </label>
+          </div>
+        </section>
+
+        <section class="agri-profile-panel" data-panel="assessment">
+          <div class="agri-assessment-grid">
+            ${[
+              ['business_idea','Business idea'],
+              ['market_opportunity','Market opportunity'],
+              ['resources','Available resources'],
+              ['experience','Experience and skills'],
+              ['commercial_readiness','Commercial readiness']
+            ].map(([key,label])=>`
+              <label class="agri-score-field">
+                <span>${label}</span>
+                <input type="range" min="0" max="20" step="1" id="score_${key}" value="${Number(profile.assessment[key]||0)}">
+                <strong id="scoreValue_${key}">${Number(profile.assessment[key]||0)}/20</strong>
+              </label>`).join('')}
+          </div>
+          <label>Assessment recommendation
+            <select id="assessmentRecommendation">
+              ${['Assessment pending','Early-stage applicant','Requires structured development','Suitable for incubation','Commercially ready'].map(x=>`<option ${profile.assessment.recommendation===x?'selected':''}>${escProfile(x)}</option>`).join('')}
+            </select>
+          </label>
+        </section>
+
+        <section class="agri-profile-panel" data-panel="mentorship">
+          <div class="form-grid">
+            <label>Mentor name<input id="mentorName" value="${escProfile(profile.mentorship.mentor_name)}"></label>
+            <label>Mentor email<input id="mentorEmail" type="email" value="${escProfile(profile.mentorship.mentor_email)}"></label>
+            <label>Mentorship start date<input id="mentorStartDate" type="date" value="${escProfile(profile.mentorship.start_date)}"></label>
+            <label>Next meeting<input id="mentorNextMeeting" type="datetime-local" value="${escProfile(profile.mentorship.next_meeting)}"></label>
+            <label>Progress
+              <select id="mentorProgress">
+                ${['Not started','Assigned','Active','At risk','Completed'].map(x=>`<option ${profile.mentorship.progress===x?'selected':''}>${x}</option>`).join('')}
+              </select>
+            </label>
+            <label class="full">Mentorship objectives<textarea id="mentorObjectives" rows="7">${escProfile(profile.mentorship.objectives)}</textarea></label>
+          </div>
+        </section>
+
+        <section class="agri-profile-panel" data-panel="funding">
+          <div class="agri-checklist">
+            ${[
+              ['business_plan','Business plan'],
+              ['cash_flow','Cash-flow projection'],
+              ['pitch_deck','Pitch deck'],
+              ['company_registration','Company registration'],
+              ['tax_status','Tax status'],
+              ['bank_account','Business bank account']
+            ].map(([key,label])=>`
+              <label><input type="checkbox" id="fund_${key}" ${profile.funding[key]?'checked':''}><span>${label}</span></label>`).join('')}
+          </div>
+          <div class="form-grid">
+            <label>Funding status
+              <select id="fundingStatus">
+                ${['Not started','Documents required','Funding ready','Application submitted','Under review','Approved','Declined'].map(x=>`<option ${profile.funding.funding_status===x?'selected':''}>${x}</option>`).join('')}
+              </select>
+            </label>
+            <label class="full">Funding notes<textarea id="fundingNotes" rows="7">${escProfile(profile.funding.funding_notes)}</textarea></label>
+          </div>
+        </section>
+
+        <section class="agri-profile-panel" data-panel="marketplace">
+          <div class="form-grid">
+            <label>Primary product<input id="marketProduct" value="${escProfile(profile.marketplace.product)}"></label>
+            <label>Production capacity<input id="marketCapacity" value="${escProfile(profile.marketplace.production_capacity)}"></label>
+            <label>Indicative unit price<input id="marketPrice" value="${escProfile(profile.marketplace.unit_price)}"></label>
+            <label>Delivery area<input id="marketDelivery" value="${escProfile(profile.marketplace.delivery_area)}"></label>
+            <label>Packaging<input id="marketPackaging" value="${escProfile(profile.marketplace.packaging)}"></label>
+            <label>Quality status
+              <select id="marketQuality">
+                ${['Not assessed','Assessment required','Conditionally approved','Verified'].map(x=>`<option ${profile.marketplace.quality_status===x?'selected':''}>${x}</option>`).join('')}
+              </select>
+            </label>
+            <label>Marketplace listing
+              <select id="marketListing">
+                ${['Not ready','Preparing profile','Ready for review','Marketplace ready','Listed'].map(x=>`<option ${profile.marketplace.listing_status===x?'selected':''}>${x}</option>`).join('')}
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section class="agri-profile-panel" data-panel="communications">
+          <div class="agri-communication-actions">
+            <button type="button" class="btn btn-secondary" data-email-type="received">Acknowledgement</button>
+            <button type="button" class="btn btn-secondary" data-email-type="information">Request information</button>
+            <button type="button" class="btn btn-secondary" data-email-type="interview">Interview invitation</button>
+            <button type="button" class="btn btn-secondary" data-email-type="approved">Approval email</button>
+            <button type="button" class="btn btn-secondary" data-email-type="declined">Outcome email</button>
+          </div>
+          <div id="agriCommunicationLog">${renderCommunications(profile)}</div>
+        </section>
+
+        <section class="agri-profile-panel" data-panel="timeline">
+          <div id="agriTimeline">${renderTimeline(record,profile)}</div>
+        </section>
+
+        <div class="form-actions agri-profile-footer">
+          <button type="button" class="btn btn-secondary" id="agriPrintProfile">Print / Save PDF</button>
+          <button type="button" class="btn btn-secondary" onclick="closeDrawer()">Cancel</button>
+          <button class="btn btn-primary">Save applicant profile</button>
+        </div>
+      </form>`;
+
+    openDrawer();
+
+    const activateTab = tab => {
+      $$('#agriProfileTabs button').forEach(button=>button.classList.toggle('active',button.dataset.tab===tab));
+      $$('.agri-profile-panel').forEach(panel=>panel.classList.toggle('active',panel.dataset.panel===tab));
+    };
+    $$('#agriProfileTabs button').forEach(button=>button.onclick=()=>activateTab(button.dataset.tab));
+
+    const scoreKeys=['business_idea','market_opportunity','resources','experience','commercial_readiness'];
+    const refreshScore = () => {
+      scoreKeys.forEach(key=>{
+        $('#scoreValue_'+key).textContent=$('#score_'+key).value+'/20';
+      });
+      const current=scoreKeys.reduce((sum,key)=>sum+Number($('#score_'+key).value),0);
+      $('#agriProfileScore').textContent=current+'%';
+      $('#agriProfileScoreLabel').textContent=scoreLabel(current);
+    };
+    scoreKeys.forEach(key=>$('#score_'+key).oninput=refreshScore);
+
+    $$('[data-email-type]').forEach(button=>{
+      button.onclick=async()=>{
+        const type=button.dataset.emailType;
+        if (typeof openEmail === 'function') openEmail(record,type);
+        const template = typeof emailTemplate === 'function' ? emailTemplate(record,type) : {subject:type};
+        addCommunication(profile,type,template.subject || type);
+        addTimeline(profile,'Communication',`Prepared ${type} email`);
+        await api(`/admin/entrepreneurs/${id}`,{
+          method:'PATCH',
+          body:JSON.stringify({internal_notes:serializeProfile(profile)})
+        });
+        $('#agriCommunicationLog').innerHTML=renderCommunications(profile);
+        $('#agriTimeline').innerHTML=renderTimeline(record,profile);
+      };
+    });
+
+    $('#agriPrintProfile').onclick=()=>window.print();
+
+    $('#agriProfileForm').onsubmit=async event=>{
+      event.preventDefault();
+
+      const oldStatus=record.status;
+      const newStatus=$('#recordStatus').value;
+
+      profile.case_notes=$('#profileCaseNotes').value;
+      profile.assessment={
+        business_idea:Number($('#score_business_idea').value),
+        market_opportunity:Number($('#score_market_opportunity').value),
+        resources:Number($('#score_resources').value),
+        experience:Number($('#score_experience').value),
+        commercial_readiness:Number($('#score_commercial_readiness').value),
+        recommendation:$('#assessmentRecommendation').value
+      };
+      profile.mentorship={
+        mentor_name:$('#mentorName').value,
+        mentor_email:$('#mentorEmail').value,
+        start_date:$('#mentorStartDate').value,
+        next_meeting:$('#mentorNextMeeting').value,
+        objectives:$('#mentorObjectives').value,
+        progress:$('#mentorProgress').value
+      };
+      profile.funding={
+        business_plan:$('#fund_business_plan').checked,
+        cash_flow:$('#fund_cash_flow').checked,
+        pitch_deck:$('#fund_pitch_deck').checked,
+        company_registration:$('#fund_company_registration').checked,
+        tax_status:$('#fund_tax_status').checked,
+        bank_account:$('#fund_bank_account').checked,
+        funding_status:$('#fundingStatus').value,
+        funding_notes:$('#fundingNotes').value
+      };
+      profile.marketplace={
+        product:$('#marketProduct').value,
+        production_capacity:$('#marketCapacity').value,
+        unit_price:$('#marketPrice').value,
+        delivery_area:$('#marketDelivery').value,
+        packaging:$('#marketPackaging').value,
+        quality_status:$('#marketQuality').value,
+        listing_status:$('#marketListing').value
+      };
+
+      if (oldStatus !== newStatus) {
+        addTimeline(profile,'Stage change',`${oldStatus || 'New'} to ${newStatus}`);
+      } else {
+        addTimeline(profile,'Profile update','Applicant profile updated');
+      }
+
+      await api(`/admin/entrepreneurs/${id}`,{
+        method:'PATCH',
+        body:JSON.stringify({
+          status:newStatus,
+          assigned_to_id:$('#recordOwner').value?Number($('#recordOwner').value):null,
+          internal_notes:serializeProfile(profile)
+        })
+      });
+
+      toast('Applicant profile saved');
+      closeDrawer();
+      loadResource('entrepreneurs');
+    };
+  };
+})();

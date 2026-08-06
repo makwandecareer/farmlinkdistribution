@@ -294,3 +294,41 @@ button{white-space:nowrap}
 @media(max-width:1000px){.agri-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:620px){.agri-kpi-grid{grid-template-columns:1fr}.agri-review-actions,.agri-form-actions{display:grid}.agri-review-actions .btn,.agri-form-actions .btn{width:100%}}
 @media print{body *{visibility:hidden!important}#drawer,#drawer *{visibility:visible!important}#drawer{position:absolute!important;inset:0!important;width:100%!important;max-width:none!important;background:#fff!important}.agri-review-actions,.agri-form-actions,#closeDrawer{display:none!important}}
+/* FARMLINK_AGRISTART_APPLICANT_PROFILE_V2 */
+.agri-profile-header{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}
+.agri-profile-header h2{margin:4px 0}
+.agri-profile-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:18px 0}
+.agri-profile-summary article{background:#f5f7f5;border:1px solid rgba(8,62,44,.1);border-radius:14px;padding:15px}
+.agri-profile-summary span,.agri-profile-summary small{display:block;color:#66756e}
+.agri-profile-summary strong{display:block;font-size:22px;color:#073827;margin:5px 0}
+.agri-profile-recommendation{background:#f5f0e4;border-left:4px solid #d19a2a;border-radius:14px;padding:17px;margin-bottom:18px}
+.agri-profile-recommendation>span{font-size:10px;text-transform:uppercase;letter-spacing:.14em;font-weight:800;color:#8b681e}
+.agri-profile-recommendation h3{margin:7px 0 10px}
+.agri-profile-recommendation div{display:flex;flex-wrap:wrap;gap:6px}
+.agri-profile-recommendation em{font-style:normal;background:#fff;border:1px solid rgba(8,62,44,.1);border-radius:999px;padding:6px 9px;font-size:11px}
+.agri-profile-tabs{display:flex;gap:5px;overflow-x:auto;border-bottom:1px solid rgba(8,62,44,.12);margin-bottom:18px;padding-bottom:8px}
+.agri-profile-tabs button{white-space:nowrap;border:1px solid transparent;background:transparent;border-radius:10px;padding:9px 12px;font-weight:700;cursor:pointer}
+.agri-profile-tabs button.active{background:#073827;color:#fff}
+.agri-profile-panel{display:none}
+.agri-profile-panel.active{display:block}
+.agri-profile-controls{margin-top:18px}
+.agri-assessment-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:18px}
+.agri-score-field{display:grid;grid-template-columns:minmax(160px,1fr) 1.5fr 55px;gap:12px;align-items:center;background:#f7f9f7;border:1px solid rgba(8,62,44,.1);border-radius:12px;padding:12px}
+.agri-score-field input{width:100%}
+.agri-checklist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:18px}
+.agri-checklist label{display:flex;align-items:center;gap:10px;background:#f7f9f7;border:1px solid rgba(8,62,44,.1);border-radius:12px;padding:13px}
+.agri-communication-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.agri-communication-actions .btn{width:auto}
+.agri-communication-item{display:flex;justify-content:space-between;gap:18px;border-bottom:1px solid rgba(8,62,44,.09);padding:12px 0}
+.agri-communication-item div strong,.agri-communication-item div span{display:block}
+.agri-communication-item div span,.agri-communication-item small{color:#66756e}
+.agri-timeline-item{display:grid;grid-template-columns:14px 1fr;gap:10px;position:relative;padding:0 0 18px}
+.agri-timeline-item:before{content:"";position:absolute;left:5px;top:13px;bottom:-4px;width:2px;background:#dce5df}
+.agri-timeline-item:last-child:before{display:none}
+.agri-timeline-item i{width:12px;height:12px;border-radius:50%;background:#d19a2a;margin-top:5px;z-index:1}
+.agri-timeline-item strong,.agri-timeline-item span,.agri-timeline-item small{display:block}
+.agri-timeline-item span{margin:3px 0}
+.agri-timeline-item small{color:#66756e}
+.agri-profile-footer{position:sticky;bottom:0;background:#fff;border-top:1px solid rgba(8,62,44,.1);padding-top:12px;margin-top:22px}
+@media(max-width:700px){.agri-profile-summary{grid-template-columns:1fr}.agri-checklist{grid-template-columns:1fr}.agri-score-field{grid-template-columns:1fr}.agri-profile-header{display:block}}
+@media print{.agri-profile-tabs,.agri-profile-footer,.agri-communication-actions{display:none!important}.agri-profile-panel{display:block!important;page-break-inside:avoid}.agri-profile-panel:before{content:attr(data-panel);display:block;text-transform:capitalize;font-size:18px;font-weight:800;margin:18px 0 8px}}
