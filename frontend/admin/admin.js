@@ -1,3 +1,23 @@
+/* FARMLINK_SAFE_INSERT_BEFORE_V1
+   Prevents repeated table-enhancement observers from calling insertBefore
+   with a reference node that has already moved to another parent. */
+(() => {
+  if (window.__farmLinkSafeInsertBeforeInstalled) return;
+  window.__farmLinkSafeInsertBeforeInstalled = true;
+
+  const nativeInsertBefore = Node.prototype.insertBefore;
+  Node.prototype.insertBefore = function(newNode, referenceNode) {
+    if (referenceNode == null) {
+      return nativeInsertBefore.call(this, newNode, null);
+    }
+
+    if (referenceNode.parentNode !== this) {
+      return this.appendChild(newNode);
+    }
+
+    return nativeInsertBefore.call(this, newNode, referenceNode);
+  };
+})();
 const API=(()=>{const c=window.FARMLINK_API_URL?.trim();if(c)return c.replace(/\/$/,'')+'/api';if(['localhost','127.0.0.1'].includes(location.hostname))return'http://localhost:8000/api';return'https://farmlinkdistribution.onrender.com/api'})();
 let token=localStorage.getItem('farmlink_token')||'',currentUser=null;
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
