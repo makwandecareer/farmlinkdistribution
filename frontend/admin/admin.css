@@ -335,3 +335,141 @@ button{white-space:nowrap}
 /* FARMLINK_AGRISTART_CONVERT_TO_FARMER_V1 */
 .btn-convert-farmer{background:#d19a2a!important;color:#071f16!important;border-color:#d19a2a!important;font-weight:800!important}
 .btn-convert-farmer:hover{filter:brightness(.96)}
+/* FARMLINK_AGRISTART_PROFILE_LAYOUT_V3
+   Wider applicant review workspace with aligned tabs and action controls. */
+#drawer{
+  width:min(1120px,78vw)!important;
+  max-width:1120px!important;
+}
+
+#drawerBody{
+  padding:28px 34px 120px!important;
+  overflow-x:hidden!important;
+}
+
+.agri-profile-header{
+  align-items:center!important;
+  margin-bottom:10px!important;
+}
+
+.agri-profile-summary{
+  grid-template-columns:repeat(3,minmax(180px,1fr))!important;
+  gap:14px!important;
+}
+
+.agri-profile-summary article{
+  min-height:108px!important;
+}
+
+.agri-profile-tabs{
+  display:grid!important;
+  grid-template-columns:repeat(7,minmax(120px,1fr))!important;
+  gap:8px!important;
+  overflow-x:auto!important;
+  padding:0 0 12px!important;
+  margin:0 0 22px!important;
+  scroll-snap-type:x proximity;
+}
+
+.agri-profile-tabs button{
+  min-width:120px!important;
+  text-align:center!important;
+  scroll-snap-align:start;
+}
+
+.agri-profile-panel .detail-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:12px!important;
+}
+
+.agri-profile-panel .detail.full{
+  grid-column:1/-1!important;
+}
+
+.agri-profile-panel .form-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:16px!important;
+}
+
+.agri-profile-panel .form-grid .full{
+  grid-column:1/-1!important;
+}
+
+.agri-profile-footer{
+  position:sticky!important;
+  bottom:-120px!important;
+  z-index:20!important;
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(150px,1fr))!important;
+  gap:10px!important;
+  margin:28px -34px -120px!important;
+  padding:16px 34px!important;
+  background:#fff!important;
+  border-top:1px solid rgba(8,62,44,.14)!important;
+  box-shadow:0 -12px 30px rgba(8,62,44,.08)!important;
+}
+
+.agri-profile-footer .btn{
+  width:100%!important;
+  min-height:44px!important;
+  margin:0!important;
+  white-space:nowrap!important;
+}
+
+#convertAgriToFarmer{
+  order:-1!important;
+}
+
+.agri-assessment-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+}
+
+.agri-checklist{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+}
+
+@media(max-width:1180px){
+  #drawer{
+    width:min(960px,88vw)!important;
+  }
+
+  .agri-profile-panel .detail-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+
+  .agri-profile-footer{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+}
+
+@media(max-width:760px){
+  #drawer{
+    width:100vw!important;
+    max-width:none!important;
+  }
+
+  #drawerBody{
+    padding:22px 18px 150px!important;
+  }
+
+  .agri-profile-summary,
+  .agri-profile-panel .detail-grid,
+  .agri-profile-panel .form-grid,
+  .agri-assessment-grid,
+  .agri-checklist{
+    grid-template-columns:1fr!important;
+  }
+
+  .agri-profile-footer{
+    grid-template-columns:1fr!important;
+    margin:24px -18px -150px!important;
+    padding:14px 18px!important;
+  }
+}
+
+@media(min-width:1500px){
+  #drawer{
+    width:min(1240px,72vw)!important;
+    max-width:1240px!important;
+  }
+}
