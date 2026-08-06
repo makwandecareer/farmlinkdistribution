@@ -17,6 +17,7 @@ from .deps import current_user, ceo_user
 from .utils import make_reference, audit
 from .operations import router as operations_router
 from .phase3_routes import router as phase3_router
+from .phase4_routes import router as phase4_router
 from .funding_routes import router as funding_router
 from .paystack import router as paystack_router
 
@@ -62,6 +63,7 @@ app.add_middleware(
 )
 app.include_router(operations_router)
 app.include_router(phase3_router)
+app.include_router(phase4_router)
 app.include_router(funding_router)
 app.include_router(paystack_router)
 
@@ -306,6 +308,14 @@ if FRONTEND.exists():
     def admin_phase3_workspace_css(): return FileResponse(FRONTEND / "admin" / "phase3-workspace.css", media_type="text/css")
     @app.get("/admin/phase3-workspace.js")
     def admin_phase3_workspace_js(): return FileResponse(FRONTEND / "admin" / "phase3-workspace.js", media_type="application/javascript")
+    @app.get("/phase4-marketplace.css")
+    def phase4_marketplace_css(): return FileResponse(FRONTEND / "phase4-marketplace.css", media_type="text/css")
+    @app.get("/phase4-marketplace.js")
+    def phase4_marketplace_js(): return FileResponse(FRONTEND / "phase4-marketplace.js", media_type="application/javascript")
+    @app.get("/admin/phase4-marketplace.css")
+    def admin_phase4_marketplace_css(): return FileResponse(FRONTEND / "admin" / "phase4-marketplace.css", media_type="text/css")
+    @app.get("/admin/phase4-marketplace.js")
+    def admin_phase4_marketplace_js(): return FileResponse(FRONTEND / "admin" / "phase4-marketplace.js", media_type="application/javascript")
     @app.get("/admin/admin.js")
     def admin_js(): return FileResponse(FRONTEND / "admin" / "admin.js", media_type="application/javascript")
 
