@@ -623,3 +623,21 @@ button{white-space:nowrap}
     box-shadow:none!important;
   }
 }
+/* FARMLINK_AGRISTART_MENTORSHIP_V1 */
+.agri-mentor-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.agri-mentor-summary article{background:#f7f9f7;border:1px solid rgba(8,62,44,.1);border-radius:14px;padding:16px}
+.agri-mentor-summary span,.agri-mentor-summary small{display:block;color:#66756e}
+.agri-mentor-summary strong{display:block;font-size:20px;color:#073827;margin:5px 0}
+.agri-mentor-section-head{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:28px 0 12px}
+.agri-mentor-section-head h3{margin:3px 0 0}
+.agri-mentor-section-head .btn{width:auto}
+.agri-mentor-list{display:grid;gap:10px}
+.agri-mentor-card{background:#fff;border:1px solid rgba(8,62,44,.12);border-radius:14px;padding:15px}
+.agri-mentor-card>div:first-child{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+.agri-mentor-card strong,.agri-mentor-card span{display:block}
+.agri-mentor-card span{color:#66756e;font-size:12px}
+.agri-mentor-card p{margin:10px 0;color:#37473f}
+.agri-mentor-card-actions{display:flex;justify-content:flex-end}
+.agri-mentor-task-footer{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.agri-mentor-task-footer select{max-width:190px}
+@media(max-width:760px){.agri-mentor-summary{grid-template-columns:1fr}.agri-mentor-section-head,.agri-mentor-card>div:first-child,.agri-mentor-task-footer{display:grid}.agri-mentor-section-head .btn{width:100%}}

@@ -1683,3 +1683,204 @@ if(token)start();
     formActions.insertBefore(button,formActions.firstChild);
   };
 })();
+/* FARMLINK_AGRISTART_MENTORSHIP_V1
+   Advanced mentorship management stored inside the existing structured
+   AgriStart applicant profile. No backend migration required. */
+(() => {
+  const PROFILE_PREFIX = 'AGRISTART_PROFILE_V2:';
+
+  const parseProfileSafe = raw => {
+    const text = String(raw || '');
+    if (!text.startsWith(PROFILE_PREFIX)) return {case_notes:text,timeline:[],communications:[],mentorship:{}};
+    try {
+      const profile = JSON.parse(text.slice(PROFILE_PREFIX.length));
+      profile.timeline = Array.isArray(profile.timeline) ? profile.timeline : [];
+      profile.communications = Array.isArray(profile.communications) ? profile.communications : [];
+      profile.mentorship = profile.mentorship || {};
+      profile.mentorship.meetings = Array.isArray(profile.mentorship.meetings) ? profile.mentorship.meetings : [];
+      profile.mentorship.tasks = Array.isArray(profile.mentorship.tasks) ? profile.mentorship.tasks : [];
+      return profile;
+    } catch {
+      return {case_notes:text,timeline:[],communications:[],mentorship:{meetings:[],tasks:[]}};
+    }
+  };
+
+  const serializeProfileSafe = profile => PROFILE_PREFIX + JSON.stringify(profile);
+
+  const htmlEsc = value => typeof esc === 'function'
+    ? esc(value == null ? '' : String(value))
+    : String(value == null ? '' : value)
+      .replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
+
+  const fmtMentorDate = value => value ? new Date(value).toLocaleString('en-ZA') : 'Not scheduled';
+
+  const previousOpenRecord = window.openRecord;
+
+  window.openRecord = async function(resource,id) {
+    await previousOpenRecord(resource,id);
+    if (resource !== 'entrepreneurs') return;
+
+    const record = await api(`/admin/entrepreneurs/${id}`);
+    const profile = parseProfileSafe(record.internal_notes);
+    const panel = document.querySelector('.agri-profile-panel[data-panel="mentorship"]');
+    if (!panel || panel.dataset.mentorshipEnhanced === 'true') return;
+    panel.dataset.mentorshipEnhanced = 'true';
+
+    panel.innerHTML = `
+      <div class="agri-mentor-summary">
+        <article><span>Mentor</span><strong>${htmlEsc(profile.mentorship.mentor_name || 'Unassigned')}</strong><small>${htmlEsc(profile.mentorship.mentor_email || 'No email')}</small></article>
+        <article><span>Progress</span><strong>${htmlEsc(profile.mentorship.progress || 'Not started')}</strong><small>${profile.mentorship.meetings.length} meeting(s)</small></article>
+        <article><span>Open tasks</span><strong>${profile.mentorship.tasks.filter(t=>t.status!=='Completed').length}</strong><small>${profile.mentorship.tasks.length} total task(s)</small></article>
+      </div>
+
+      <div class="form-grid">
+        <label>Mentor name<input id="mentorName" value="${htmlEsc(profile.mentorship.mentor_name || '')}"></label>
+        <label>Mentor email<input id="mentorEmail" type="email" value="${htmlEsc(profile.mentorship.mentor_email || '')}"></label>
+        <label>Mentorship start date<input id="mentorStartDate" type="date" value="${htmlEsc(profile.mentorship.start_date || '')}"></label>
+        <label>Next meeting<input id="mentorNextMeeting" type="datetime-local" value="${htmlEsc(profile.mentorship.next_meeting || '')}"></label>
+        <label>Progress
+          <select id="mentorProgress">
+            ${['Not started','Assigned','Active','At risk','Paused','Completed'].map(x=>`<option ${profile.mentorship.progress===x?'selected':''}>${x}</option>`).join('')}
+          </select>
+        </label>
+        <label class="full">Mentorship objectives<textarea id="mentorObjectives" rows="5">${htmlEsc(profile.mentorship.objectives || '')}</textarea></label>
+      </div>
+
+      <div class="agri-mentor-section-head">
+        <div><span class="kicker">Mentorship meetings</span><h3>Meeting history</h3></div>
+        <button type="button" class="btn btn-secondary" id="addMentorMeeting">Add meeting</button>
+      </div>
+      <div id="mentorMeetingsList" class="agri-mentor-list"></div>
+
+      <div class="agri-mentor-section-head">
+        <div><span class="kicker">Action management</span><h3>Mentorship tasks</h3></div>
+        <button type="button" class="btn btn-secondary" id="addMentorTask">Add task</button>
+      </div>
+      <div id="mentorTasksList" class="agri-mentor-list"></div>
+    `;
+
+    const renderMeetings = () => {
+      const list = $('#mentorMeetingsList');
+      const meetings = profile.mentorship.meetings || [];
+      list.innerHTML = meetings.length ? meetings.map((meeting,index)=>`
+        <article class="agri-mentor-card">
+          <div>
+            <strong>${htmlEsc(meeting.title || 'Mentorship meeting')}</strong>
+            <span>${fmtMentorDate(meeting.date)}</span>
+          </div>
+          <p>${htmlEsc(meeting.notes || 'No notes recorded.')}</p>
+          <div class="agri-mentor-card-actions">
+            <button type="button" class="link-btn" data-delete-meeting="${index}">Delete</button>
+          </div>
+        </article>`).join('') : '<p class="muted">No mentorship meetings recorded.</p>';
+
+      list.querySelectorAll('[data-delete-meeting]').forEach(button=>{
+        button.onclick=()=>{
+          const index=Number(button.dataset.deleteMeeting);
+          profile.mentorship.meetings.splice(index,1);
+          renderMeetings();
+        };
+      });
+    };
+
+    const renderTasks = () => {
+      const list = $('#mentorTasksList');
+      const tasks = profile.mentorship.tasks || [];
+      list.innerHTML = tasks.length ? tasks.map((task,index)=>`
+        <article class="agri-mentor-card">
+          <div>
+            <strong>${htmlEsc(task.title || 'Mentorship task')}</strong>
+            <span>Due: ${task.due_date ? new Date(task.due_date).toLocaleDateString('en-ZA') : 'No due date'}</span>
+          </div>
+          <p>${htmlEsc(task.description || '')}</p>
+          <div class="agri-mentor-task-footer">
+            <select data-task-status="${index}">
+              ${['Not started','In progress','Blocked','Completed'].map(x=>`<option ${task.status===x?'selected':''}>${x}</option>`).join('')}
+            </select>
+            <button type="button" class="link-btn" data-delete-task="${index}">Delete</button>
+          </div>
+        </article>`).join('') : '<p class="muted">No mentorship tasks recorded.</p>';
+
+      list.querySelectorAll('[data-task-status]').forEach(select=>{
+        select.onchange=()=>{
+          profile.mentorship.tasks[Number(select.dataset.taskStatus)].status=select.value;
+        };
+      });
+
+      list.querySelectorAll('[data-delete-task]').forEach(button=>{
+        button.onclick=()=>{
+          profile.mentorship.tasks.splice(Number(button.dataset.deleteTask),1);
+          renderTasks();
+        };
+      });
+    };
+
+    $('#addMentorMeeting').onclick=()=>{
+      const title=prompt('Meeting title','Mentorship progress review');
+      if (title==null) return;
+      const date=prompt('Meeting date and time (YYYY-MM-DDTHH:MM)',new Date().toISOString().slice(0,16));
+      if (date==null) return;
+      const notes=prompt('Meeting notes and outcomes','');
+      if (notes==null) return;
+      profile.mentorship.meetings.unshift({title:title.trim(),date:date.trim(),notes:notes.trim()});
+      renderMeetings();
+    };
+
+    $('#addMentorTask').onclick=()=>{
+      const title=prompt('Task title','');
+      if (!title) return;
+      const due=prompt('Due date (YYYY-MM-DD)','');
+      if (due==null) return;
+      const description=prompt('Task description','');
+      if (description==null) return;
+      profile.mentorship.tasks.unshift({
+        title:title.trim(),
+        due_date:due.trim(),
+        description:description.trim(),
+        status:'Not started'
+      });
+      renderTasks();
+    };
+
+    renderMeetings();
+    renderTasks();
+
+    const form = $('#agriProfileForm');
+    if (!form || form.dataset.mentorshipHooked === 'true') return;
+    form.dataset.mentorshipHooked = 'true';
+    const previousSubmit = form.onsubmit;
+
+    form.onsubmit = async event => {
+      event.preventDefault();
+
+      profile.mentorship.mentor_name=$('#mentorName')?.value || '';
+      profile.mentorship.mentor_email=$('#mentorEmail')?.value || '';
+      profile.mentorship.start_date=$('#mentorStartDate')?.value || '';
+      profile.mentorship.next_meeting=$('#mentorNextMeeting')?.value || '';
+      profile.mentorship.progress=$('#mentorProgress')?.value || 'Not started';
+      profile.mentorship.objectives=$('#mentorObjectives')?.value || '';
+
+      if (profile.mentorship.next_meeting) {
+        profile.timeline = Array.isArray(profile.timeline) ? profile.timeline : [];
+        profile.timeline.unshift({
+          at:new Date().toISOString(),
+          type:'Mentorship',
+          description:`Next mentorship meeting scheduled for ${fmtMentorDate(profile.mentorship.next_meeting)}`
+        });
+      }
+
+      await api(`/admin/entrepreneurs/${id}`,{
+        method:'PATCH',
+        body:JSON.stringify({
+          status:$('#recordStatus')?.value || record.status,
+          assigned_to_id:$('#recordOwner')?.value ? Number($('#recordOwner').value) : null,
+          internal_notes:serializeProfileSafe(profile)
+        })
+      });
+
+      toast('Mentorship record saved');
+      closeDrawer();
+      loadResource('entrepreneurs');
+    };
+  };
+})();
