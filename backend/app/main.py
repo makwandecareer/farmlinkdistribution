@@ -18,6 +18,7 @@ from .utils import make_reference, audit
 from .operations import router as operations_router
 from .phase3_routes import router as phase3_router
 from .phase4_routes import router as phase4_router
+from .phase5_routes import router as phase5_router
 from .funding_routes import router as funding_router
 from .paystack import router as paystack_router
 
@@ -64,6 +65,7 @@ app.add_middleware(
 app.include_router(operations_router)
 app.include_router(phase3_router)
 app.include_router(phase4_router)
+app.include_router(phase5_router)
 app.include_router(funding_router)
 app.include_router(paystack_router)
 
@@ -316,6 +318,14 @@ if FRONTEND.exists():
     def admin_phase4_marketplace_css(): return FileResponse(FRONTEND / "admin" / "phase4-marketplace.css", media_type="text/css")
     @app.get("/admin/phase4-marketplace.js")
     def admin_phase4_marketplace_js(): return FileResponse(FRONTEND / "admin" / "phase4-marketplace.js", media_type="application/javascript")
+    @app.get("/farmlink-final.css")
+    def farmlink_final_css(): return FileResponse(FRONTEND / "farmlink-final.css", media_type="text/css")
+    @app.get("/farmlink-final.js")
+    def farmlink_final_js(): return FileResponse(FRONTEND / "farmlink-final.js", media_type="application/javascript")
+    @app.get("/admin/farmlink-final.css")
+    def admin_farmlink_final_css(): return FileResponse(FRONTEND / "admin" / "farmlink-final.css", media_type="text/css")
+    @app.get("/admin/farmlink-final.js")
+    def admin_farmlink_final_js(): return FileResponse(FRONTEND / "admin" / "farmlink-final.js", media_type="application/javascript")
     @app.get("/admin/admin.js")
     def admin_js(): return FileResponse(FRONTEND / "admin" / "admin.js", media_type="application/javascript")
 
