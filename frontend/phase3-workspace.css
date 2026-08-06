@@ -1,0 +1,14 @@
+/* FarmLink AgriStart Phase 3 public workspace */
+.p3-public{background:linear-gradient(180deg,#f5f8f5,#fff)}
+.p3-public-head{max-width:850px;text-align:center;margin:0 auto 30px}
+.p3-access-card{display:grid;grid-template-columns:1fr 1fr auto;gap:14px;align-items:end;max-width:950px;margin:0 auto 30px;background:#fff;padding:22px;border:1px solid rgba(8,62,44,.12);border-radius:18px;box-shadow:0 18px 44px rgba(8,62,44,.07)}
+.p3-access-card label{display:grid;gap:7px;font-weight:700;color:#073827}
+.p3-access-card input{padding:13px;border:1px solid #cad6d0;border-radius:11px}
+.p3-public-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:22px 0}
+.p3-public-summary article,.p3-panel{background:#fff;border:1px solid rgba(8,62,44,.12);border-radius:18px;padding:20px;box-shadow:0 12px 30px rgba(8,62,44,.05)}
+.p3-public-summary span,.p3-public-summary small{display:block;color:#66756e}.p3-public-summary strong{display:block;color:#073827;font-size:20px;margin:6px 0}
+.p3-public-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.p3-panel.full{grid-column:1/-1}.p3-panel h3{color:#073827;margin-top:0}
+.p3-score-row{display:grid;grid-template-columns:110px 1fr 35px;gap:10px;align-items:center;margin:12px 0}.p3-score-row>div{height:8px;background:#e5ece8;border-radius:999px;overflow:hidden}.p3-score-row i{display:block;height:100%;background:#d19a2a}
+.p3-item,.p3-doc-list>div{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #e7ece9}.p3-item span,.p3-doc-list span{color:#66756e}
+.p3-upload-form{display:grid;grid-template-columns:1fr 1fr auto;gap:12px}.p3-upload-form select,.p3-upload-form input{padding:12px;border:1px solid #cad6d0;border-radius:11px}
+@media(max-width:850px){.p3-access-card,.p3-public-summary,.p3-public-grid,.p3-upload-form{grid-template-columns:1fr}.p3-panel.full{grid-column:auto}}

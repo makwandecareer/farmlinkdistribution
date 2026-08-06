@@ -16,6 +16,7 @@ from .security import hash_password, verify_password, create_access_token
 from .deps import current_user, ceo_user
 from .utils import make_reference, audit
 from .operations import router as operations_router
+from .phase3_routes import router as phase3_router
 from .funding_routes import router as funding_router
 from .paystack import router as paystack_router
 
@@ -60,6 +61,7 @@ app.add_middleware(
     expose_headers=["*"],
 )
 app.include_router(operations_router)
+app.include_router(phase3_router)
 app.include_router(funding_router)
 app.include_router(paystack_router)
 
@@ -296,6 +298,14 @@ if FRONTEND.exists():
     def admin_funding_integration_v2_css(): return FileResponse(FRONTEND / "admin" / "funding-integration-v2.css", media_type="text/css")
     @app.get("/admin/funding-integration-v2.js")
     def admin_funding_integration_v2_js(): return FileResponse(FRONTEND / "admin" / "funding-integration-v2.js", media_type="application/javascript")
+    @app.get("/phase3-workspace.css")
+    def phase3_workspace_css(): return FileResponse(FRONTEND / "phase3-workspace.css", media_type="text/css")
+    @app.get("/phase3-workspace.js")
+    def phase3_workspace_js(): return FileResponse(FRONTEND / "phase3-workspace.js", media_type="application/javascript")
+    @app.get("/admin/phase3-workspace.css")
+    def admin_phase3_workspace_css(): return FileResponse(FRONTEND / "admin" / "phase3-workspace.css", media_type="text/css")
+    @app.get("/admin/phase3-workspace.js")
+    def admin_phase3_workspace_js(): return FileResponse(FRONTEND / "admin" / "phase3-workspace.js", media_type="application/javascript")
     @app.get("/admin/admin.js")
     def admin_js(): return FileResponse(FRONTEND / "admin" / "admin.js", media_type="application/javascript")
 
