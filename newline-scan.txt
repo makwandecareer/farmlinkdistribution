@@ -1,0 +1,20 @@
+FOUND: `r`n IN E:\farmlink-production\frontend\admin\index.html
+FOUND: `r`n IN E:\farmlink-production\frontend\index.html
+--- HOMEPAGE START ---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="FarmLink Distribution connects South African egg farmers with business buyers through supplier registration, bulk ordering and nationwide distribution coordination.">
+  <meta name="theme-color" content="#073827">
+  <title>FarmLink Distribution | Connecting Farms to Markets</title>
+--- ADMIN START ---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#073827">
+  <title>FarmLink Administration Centre</title>
+  <link rel="stylesheet" href="/admin/admin.css?v=corruption-fix-1">
