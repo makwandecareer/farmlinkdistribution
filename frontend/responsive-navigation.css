@@ -1,0 +1,348 @@
+/* FarmLink Responsive Experience V1 */
+:root {
+  --fl-nav-height: 78px;
+  --fl-mobile-nav-bg: #ffffff;
+  --fl-mobile-nav-line: rgba(7, 56, 39, 0.12);
+  --fl-mobile-nav-shadow: 0 22px 55px rgba(7, 56, 39, 0.16);
+}
+
+html {
+  overflow-x: hidden;
+  scroll-padding-top: calc(var(--fl-nav-height) + 18px);
+}
+
+body {
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+
+.fl-site-header {
+  position: sticky;
+  top: 0;
+  z-index: 1200;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid var(--fl-mobile-nav-line);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.fl-site-header-inner {
+  width: min(1180px, calc(100% - 32px));
+  min-height: var(--fl-nav-height);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 22px;
+}
+
+.fl-site-brand {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.fl-site-brand img {
+  width: auto;
+  max-width: 92px;
+  max-height: 62px;
+  object-fit: contain;
+}
+
+.fl-site-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(14px, 1.7vw, 28px);
+  min-width: 0;
+}
+
+.fl-site-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: #17372b;
+  font-size: 13px;
+  font-weight: 760;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.fl-site-nav a:hover,
+.fl-site-nav a:focus-visible {
+  color: #0b5b3f;
+}
+
+.fl-site-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.fl-site-actions .button,
+.fl-site-actions a {
+  white-space: nowrap;
+}
+
+.fl-nav-toggle {
+  display: none;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 1px solid var(--fl-mobile-nav-line);
+  border-radius: 14px;
+  background: #ffffff;
+  color: #073827;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.fl-nav-toggle span,
+.fl-nav-toggle::before,
+.fl-nav-toggle::after {
+  content: "";
+  display: block;
+  width: 21px;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.fl-nav-toggle {
+  position: relative;
+}
+
+.fl-nav-toggle span {
+  position: absolute;
+}
+
+.fl-nav-toggle::before {
+  position: absolute;
+  transform: translateY(-7px);
+}
+
+.fl-nav-toggle::after {
+  position: absolute;
+  transform: translateY(7px);
+}
+
+.fl-nav-toggle[aria-expanded="true"] span {
+  opacity: 0;
+}
+
+.fl-nav-toggle[aria-expanded="true"]::before {
+  transform: rotate(45deg);
+}
+
+.fl-nav-toggle[aria-expanded="true"]::after {
+  transform: rotate(-45deg);
+}
+
+.fl-mobile-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: none;
+  background: rgba(3, 26, 18, 0.45);
+  backdrop-filter: blur(3px);
+}
+
+.fl-mobile-backdrop.is-open {
+  display: block;
+}
+
+.fl-nav-drawer {
+  display: contents;
+}
+
+body.fl-nav-open {
+  overflow: hidden;
+}
+
+@media (max-width: 1120px) {
+  .fl-site-header-inner {
+    grid-template-columns: 100px minmax(0, 1fr) auto;
+    gap: 14px;
+  }
+
+  .fl-site-nav {
+    gap: 13px;
+  }
+
+  .fl-site-nav a {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 920px) {
+  :root {
+    --fl-nav-height: 70px;
+  }
+
+  .fl-site-header-inner {
+    width: min(100% - 24px, 1180px);
+    grid-template-columns: 1fr auto;
+  }
+
+  .fl-site-brand img {
+    max-width: 82px;
+    max-height: 54px;
+  }
+
+  .fl-nav-toggle {
+    display: inline-flex;
+    justify-self: end;
+  }
+
+  .fl-nav-drawer {
+    position: fixed;
+    top: var(--fl-nav-height);
+    right: 0;
+    bottom: 0;
+    z-index: 1150;
+    width: min(88vw, 390px);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--fl-mobile-nav-bg);
+    border-left: 1px solid var(--fl-mobile-nav-line);
+    box-shadow: var(--fl-mobile-nav-shadow);
+    transform: translateX(105%);
+    transition: transform 0.24s ease;
+  }
+
+  .fl-nav-drawer.is-open {
+    transform: translateX(0);
+  }
+
+  .fl-site-nav {
+    display: grid;
+    align-items: stretch;
+    justify-content: stretch;
+    gap: 4px;
+  }
+
+  .fl-site-nav a {
+    min-height: 48px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    white-space: normal;
+  }
+
+  .fl-site-nav a:hover,
+  .fl-site-nav a:focus-visible {
+    background: #f1f6f3;
+  }
+
+  .fl-site-actions {
+    display: grid;
+    justify-content: stretch;
+  }
+
+  .fl-site-actions .button,
+  .fl-site-actions a {
+    width: 100%;
+    min-height: 48px;
+    justify-content: center;
+    text-align: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .container,
+  .farmlink-final .container {
+    width: min(100% - 24px, 1180px) !important;
+  }
+
+  .section,
+  .farmlink-final .section {
+    padding-block: 58px !important;
+  }
+
+  h1 {
+    font-size: clamp(38px, 12vw, 58px) !important;
+    line-height: 1.02 !important;
+  }
+
+  h2 {
+    font-size: clamp(30px, 9vw, 44px) !important;
+    line-height: 1.08 !important;
+  }
+
+  .hero,
+  [class*="hero"] {
+    min-height: auto !important;
+  }
+
+  .hero .container,
+  [class*="hero"] .container {
+    padding-block: 54px !important;
+  }
+
+  .p3-public-summary,
+  .p4-results,
+  .p4-search,
+  .p3-public-grid,
+  .fl-journey-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .p4-search,
+  .p3-access-card {
+    padding: 14px !important;
+  }
+
+  .button,
+  button[type="submit"],
+  input,
+  select,
+  textarea {
+    min-height: 46px;
+  }
+
+  table {
+    min-width: 720px;
+  }
+
+  .table-wrap,
+  .p4-table-wrap,
+  .p5-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

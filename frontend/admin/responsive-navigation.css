@@ -1,0 +1,247 @@
+/* FarmLink Responsive Admin V1 */
+:root {
+  --fl-admin-sidebar-width: 224px;
+  --fl-admin-topbar-height: 74px;
+}
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  -webkit-text-size-adjust: 100%;
+}
+
+.fl-admin-mobile-toggle {
+  display: none;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(7, 56, 39, 0.12);
+  border-radius: 13px;
+  background: #ffffff;
+  color: #073827;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.fl-admin-mobile-toggle::before {
+  content: "Menu";
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.fl-admin-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1490;
+  display: none;
+  background: rgba(3, 26, 18, 0.48);
+  backdrop-filter: blur(3px);
+}
+
+.fl-admin-backdrop.is-open {
+  display: block;
+}
+
+body.fl-admin-menu-open {
+  overflow: hidden;
+}
+
+.view,
+main,
+.admin-main,
+.content,
+.main-content {
+  min-width: 0;
+}
+
+.panel,
+.table-wrap,
+.p3-table-wrap,
+.p4-table-wrap,
+.p5-table-wrap {
+  max-width: 100%;
+}
+
+.table-wrap,
+.p3-table-wrap,
+.p4-table-wrap,
+.p5-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 1180px) {
+  .p3-stats,
+  .p4-stats,
+  .p5-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .fl-admin-mobile-toggle {
+    display: inline-flex;
+    order: -1;
+  }
+
+  aside,
+  .sidebar,
+  #sidebar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 1500 !important;
+    width: min(86vw, 290px) !important;
+    max-width: 290px !important;
+    transform: translateX(-105%);
+    transition: transform 0.24s ease;
+    box-shadow: 18px 0 55px rgba(2, 28, 19, 0.24);
+  }
+
+  aside.fl-admin-sidebar-open,
+  .sidebar.fl-admin-sidebar-open,
+  #sidebar.fl-admin-sidebar-open {
+    transform: translateX(0);
+  }
+
+  main,
+  .admin-main,
+  .content,
+  .main-content {
+    width: 100% !important;
+    margin-left: 0 !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  header,
+  .admin-header,
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 1400;
+    min-width: 0;
+  }
+
+  header .toolbar,
+  .admin-header .toolbar,
+  .topbar .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+  }
+
+  .page-head {
+    display: grid !important;
+    gap: 14px;
+  }
+
+  .page-head .toolbar {
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .p3-stats,
+  .p4-stats,
+  .p5-stats,
+  .p3-summary,
+  .p4-summary,
+  .p5-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .p3-card-grid,
+  .p4-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 620px) {
+  main,
+  .admin-main,
+  .content,
+  .main-content {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .view {
+    padding-inline: 0 !important;
+  }
+
+  .page-head h2 {
+    font-size: 26px !important;
+    line-height: 1.1 !important;
+  }
+
+  .p3-stats,
+  .p4-stats,
+  .p5-stats,
+  .p3-summary,
+  .p4-summary,
+  .p5-summary,
+  .p3-card-grid,
+  .p4-card-grid,
+  .form-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .panel,
+  .p3-tab-panel,
+  .p4-panel {
+    border-radius: 15px !important;
+  }
+
+  .toolbar,
+  .form-actions,
+  .p3-section-head,
+  .p4-section-head {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .toolbar > *,
+  .form-actions > *,
+  .p3-section-head > *,
+  .p4-section-head > * {
+    width: 100% !important;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    min-height: 44px;
+  }
+
+  table {
+    min-width: 760px;
+  }
+
+  .drawer,
+  #drawer,
+  .side-drawer,
+  .drawer-panel {
+    width: 100vw !important;
+    max-width: 100vw !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  aside,
+  .sidebar,
+  #sidebar {
+    transition: none !important;
+  }
+}
