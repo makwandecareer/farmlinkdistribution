@@ -1,6 +1,6 @@
 /* FarmLink Homepage Marketplace API Fix V1 */
 (() => {
-  const DEFAULT_API_ORIGIN = "https://farmlinkdistribution-api.onrender.com";
+  const DEFAULT_API_ORIGIN = "https://farmlinkdistribution.onrender.com";
   const API_ORIGIN = (
     window.FARMLINK_API_URL ||
     document.documentElement.dataset.apiOrigin ||

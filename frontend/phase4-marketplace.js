@@ -5,7 +5,7 @@
   const API_ORIGIN = (
     window.FARMLINK_API_URL ||
     document.documentElement.dataset.apiOrigin ||
-    "https://farmlinkdistribution-api.onrender.com"
+    "https://farmlinkdistribution.onrender.com"
   ).replace(/\/+$/, "");
 
   const ENDPOINTS = [
