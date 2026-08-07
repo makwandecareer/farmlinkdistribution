@@ -1,0 +1,82 @@
+/* FarmLink Mobile Navigation Stability Fix V2 */
+
+/* The backdrop must never blur or block the page unless the menu is open. */
+.fl-mobile-backdrop {
+  display: block !important;
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  background: rgba(3, 26, 18, 0.42);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.fl-mobile-backdrop.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* The page itself must never be blurred. */
+body,
+main,
+header,
+.fl-site-header,
+.hero,
+[class*="hero"] {
+  filter: none !important;
+  backdrop-filter: none;
+}
+
+/* Stable mobile drawer behaviour. */
+@media (max-width: 920px) {
+  .fl-nav-drawer {
+    display: flex !important;
+    visibility: hidden;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateX(105%);
+    transition:
+      transform 0.24s ease,
+      opacity 0.18s ease,
+      visibility 0.18s ease;
+  }
+
+  .fl-nav-drawer.is-open {
+    visibility: visible;
+    pointer-events: auto;
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  body:not(.fl-nav-open) .fl-nav-drawer {
+    visibility: hidden !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+    transform: translateX(105%) !important;
+  }
+
+  body:not(.fl-nav-open) .fl-mobile-backdrop {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  .fl-site-header {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: #ffffff !important;
+  }
+
+  .fl-site-header-inner {
+    min-height: 68px;
+  }
+
+  .fl-nav-toggle {
+    z-index: 1210;
+  }
+}
