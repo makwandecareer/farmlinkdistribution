@@ -1,0 +1,48 @@
+/* FarmLink Navigation Cleanup V4 */
+
+/* Desktop and laptop: never show mobile drawer chrome. */
+@media (min-width: 921px) {
+  .fl-nav-drawer {
+    display: contents !important;
+  }
+
+  .fl-nav-drawer-head,
+  .fl-nav-close,
+  .fl-nav-toggle,
+  .fl-mobile-backdrop {
+    display: none !important;
+  }
+
+  .fl-site-nav {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: clamp(14px, 1.7vw, 28px) !important;
+    width: auto !important;
+  }
+
+  .fl-site-actions {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+  }
+}
+
+/* Mobile and tablet: clean right-side drawer only. */
+@media (max-width: 920px) {
+  .fl-nav-drawer-head {
+    display: flex !important;
+  }
+
+  .fl-nav-toggle {
+    display: inline-flex !important;
+  }
+
+  .fl-site-nav {
+    display: grid !important;
+  }
+}
