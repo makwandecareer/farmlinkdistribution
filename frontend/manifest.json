@@ -1,0 +1,51 @@
+{
+  "name": "FarmLink Distribution",
+  "short_name": "FarmLink",
+  "description": "FarmLink Distribution connects South African farmers, agricultural entrepreneurs and business buyers through market access, AgriStart, funding readiness, memberships and distribution coordination.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#073827",
+  "lang": "en-ZA",
+  "categories": [
+    "business",
+    "shopping",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "/assets/farmlink-logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "AgriStart",
+      "short_name": "AgriStart",
+      "description": "Apply to FarmLink AgriStart",
+      "url": "/#agristart"
+    },
+    {
+      "name": "Farmer Registration",
+      "short_name": "Farmers",
+      "description": "Register as a FarmLink farmer",
+      "url": "/#portal"
+    },
+    {
+      "name": "Business Buyers",
+      "short_name": "Buyers",
+      "description": "Register as a business buyer",
+      "url": "/#portal"
+    },
+    {
+      "name": "Funding",
+      "short_name": "Funding",
+      "description": "Open the Funding Readiness Centre",
+      "url": "/#funding-readiness"
+    }
+  ]
+}
