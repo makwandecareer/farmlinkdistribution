@@ -542,3 +542,24 @@ button{white-space:nowrap}
 .launch-task-card .link-btn{position:absolute;right:14px;bottom:12px}
 @media(max-width:1000px){.launch-kpi-grid{grid-template-columns:repeat(2,1fr)}.launch-checklist-grid{grid-template-columns:1fr}}
 @media(max-width:650px){.launch-kpi-grid,.launch-record-summary{grid-template-columns:1fr}.launch-checklist-grid label{grid-template-columns:auto 1fr}.launch-checklist-grid label input[type="date"]{grid-column:1/-1}.launch-task-head{display:grid}.launch-task-head .btn{width:100%}}
+
+/* FARMLINK LIVESTOCK ADMIN V1 */
+.product-chip{display:inline-flex;align-items:center;justify-content:center;padding:5px 9px;border-radius:999px;font-size:.68rem;font-weight:900;letter-spacing:.03em;border:1px solid rgba(7,56,39,.12);background:#eef4f1;color:#073827;white-space:nowrap}
+.product-chip.product-goats{background:#fff4df;color:#79520a;border-color:#ead3a0}
+.product-chip.product-sheep{background:#f4f1ff;color:#514280;border-color:#d9d0f2}
+.product-chip.product-cattle{background:#eef4ff;color:#284e79;border-color:#cfdded}
+.product-chip.product-eggs{background:#f7edd7;color:#71520f;border-color:#ead8ab}
+.livestock-inline{margin-top:4px;color:var(--muted);font-size:.68rem;line-height:1.35}
+.livestock-record-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:22px 0 10px;padding-top:18px;border-top:1px solid var(--line)}
+.livestock-record-head h3{margin:3px 0 0;color:var(--green-900)}
+.livestock-detail-grid{margin-bottom:22px;background:#f7faf8;border:1px solid var(--line);border-radius:14px;padding:14px}
+.livestock-dashboard{margin:18px 0;background:linear-gradient(120deg,#f8fbf9,#eef5f1);border:1px solid var(--line);border-radius:16px;padding:18px}
+.livestock-dashboard-head{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:14px}
+.livestock-dashboard-head h3{margin:3px 0 0;color:var(--green-900);font-size:1.1rem}
+.livestock-order-total{font-size:.72rem;font-weight:850;color:var(--green-700);background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 11px}
+.livestock-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.livestock-metrics article{background:#fff;border:1px solid var(--line);border-radius:13px;padding:16px;min-width:0}
+.livestock-metrics article strong{display:block;font-size:1.55rem;color:var(--green-900);margin-top:10px;line-height:1}
+.livestock-metrics article>span{display:block;margin-top:5px;font-size:.74rem;font-weight:800;color:#34483e}
+.livestock-metrics article small{display:block;margin-top:4px;color:var(--muted);font-size:.68rem}
+@media(max-width:900px){.livestock-metrics{grid-template-columns:1fr}.livestock-dashboard-head{align-items:flex-start;flex-direction:column}}
