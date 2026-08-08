@@ -88,94 +88,19 @@ async function showView(name){$$('#nav button').forEach(b=>b.classList.toggle('a
 const badge=s=>`<span class="status ${esc(String(s).replaceAll(' ','-'))}">${esc(s)}</span>`;
 const empty=(m='No records available.',detail='New activity will appear here automatically.')=>`<div class="empty-state"><div><div class="empty-icon">\u2713</div><strong>${esc(m)}</strong><p>${esc(detail)}</p></div></div>`;
 function bars(series){const max=Math.max(...series.map(x=>Number(x.value)),1);return `<div class="chart">${series.map(x=>`<div class="chart-col"><div class="chart-bar" style="height:${Math.max(4,Number(x.value)/max*180)}px" title="${esc(x.value)}"></div><span>${esc(x.label)}</span></div>`).join('')}</div>`}
-async function loadDashboard(){const [d,a,farmerData,orderData]=await Promise.all([api('/admin/dashboard'),api('/admin/analytics'),api('/admin/farmers?status=all'),api('/admin/orders?status=all')]);const c=d.counts;const livestockFarmers=farmerData.items||[];const livestockOrders=orderData.items||[];const livestockStats={goatsFarmers:countLivestock(livestockFarmers,'Goats'),sheepFarmers:countLivestock(livestockFarmers,'Sheep'),cattleFarmers:countLivestock(livestockFarmers,'Cattle'),goatsAvailable:sumLivestockAvailable(livestockFarmers,'Goats'),sheepAvailable:sumLivestockAvailable(livestockFarmers,'Sheep'),cattleAvailable:sumLivestockAvailable(livestockFarmers,'Cattle'),livestockOrders:livestockOrders.filter(r=>LIVESTOCK_PRODUCTS.has(orderProduct(r))).length};$('#dashboard').innerHTML=`<div class="command-banner"><div><span class="kicker light">Operations command</span><h2>National distribution oversight from one accountable system.</h2><p>Monitor registrations, revenue, supply, fulfilment, quality and team activity in real time.</p></div><div class="command-date"><strong>${new Intl.DateTimeFormat('en-ZA',{dateStyle:'full'}).format(new Date())}</strong><span>Gauteng headquarters \u00B7 Nationwide coordination</span></div></div>
+async function loadDashboard(){const [d,a]=await Promise.all([api('/admin/dashboard'),api('/admin/analytics')]);const c=d.counts;$('#dashboard').innerHTML=`<div class="command-banner"><div><span class="kicker light">Operations command</span><h2>National distribution oversight from one accountable system.</h2><p>Monitor registrations, revenue, supply, fulfilment, quality and team activity in real time.</p></div><div class="command-date"><strong>${new Intl.DateTimeFormat('en-ZA',{dateStyle:'full'}).format(new Date())}</strong><span>Gauteng headquarters \u00B7 Nationwide coordination</span></div></div>
 <div class="quick-actions"><button class="quick-action" onclick="showView('farmers')"><span class="qa-icon">\u00EF\u00BC\u2039</span><span><strong>Review farmers</strong><span>Supplier approvals</span></span></button><button class="quick-action" onclick="showView('buyers')"><span class="qa-icon">\u25A3</span><span><strong>Review buyers</strong><span>Customer onboarding</span></span></button><button class="quick-action" onclick="showView('orders')"><span class="qa-icon">\u25CE</span><span><strong>Manage orders</strong><span>Quotes and fulfilment</span></span></button><button class="quick-action" onclick="showView('finance')"><span class="qa-icon">R</span><span><strong>Create invoice</strong><span>Finance control</span></span></button><button class="quick-action" onclick="showView('logistics')"><span class="qa-icon">\u21C4</span><span><strong>Schedule dispatch</strong><span>Delivery planning</span></span></button></div><div class="metrics">${[['R','Today revenue',fmtMoney(a.today_revenue),'Verified payments'],['\u2197','Month revenue',fmtMoney(a.month_revenue),'Current calendar month'],['\u25CF','Eggs traded',Number(a.total_trays).toLocaleString('en-ZA')+' trays','Recorded order volume'],['\u2659','Active farmers',a.active_farmers,'Approved suppliers'],['\u2713','Delivery performance',a.delivery_performance+'%','Completed dispatches']].map(([i,l,v,s])=>`<article class="metric"><span class="metric-icon">${i}</span><span class="label">${l}</span><strong>${v}</strong><small>${s}</small></article>`).join('')}</div>
-<div class="livestock-dashboard"><div class="livestock-dashboard-head"><div><span class="kicker">Livestock network</span><h3>Goats, sheep & cattle</h3></div><span class="livestock-order-total">${livestockStats.livestockOrders} livestock orders</span></div><div class="livestock-metrics">${[['Goats',livestockStats.goatsAvailable,livestockStats.goatsFarmers],['Sheep',livestockStats.sheepAvailable,livestockStats.sheepFarmers],['Cattle',livestockStats.cattleAvailable,livestockStats.cattleFarmers]].map(([product,available,farmers])=>`<article><div>${productBadge(product)}</div><strong>${Number(available).toLocaleString('en-ZA')}</strong><span>animals available</span><small>${farmers} registered supplier${farmers===1?'':'s'}</small></article>`).join('')}</div></div>
 <div class="grid-2"><article class="panel"><div class="panel-head"><div><span class="kicker">Commercial performance</span><h3>Revenue trend</h3></div></div>${bars(a.revenue_series)}</article><article class="panel"><div class="panel-head"><div><span class="kicker">Buyer activity</span><h3>Top customers</h3></div></div><div class="rank-list">${a.top_buyers.length?a.top_buyers.map((x,i)=>`<div class="rank-item"><span class="rank-num">${i+1}</span><strong>${esc(x.name)}</strong><span>${x.orders} orders</span></div>`).join(''):empty()}</div></article></div>
 <div class="grid-2" style="margin-top:18px"><article class="panel"><div class="panel-head"><div><span class="kicker">Order pipeline</span><h3>Latest submissions</h3></div></div>${d.latest.length?d.latest.map(x=>`<div class="list-item"><div><strong>${esc(nameOf(x))}</strong><div class="ref">${esc(x.reference)}</div></div><span>${esc(labelOf(x.type))}</span>${badge(x.status)}<button class="link-btn" onclick="openRecord('${plural(x.type)}',${x.id})">Review</button></div>`).join(''):empty()}</article><article class="panel"><div class="panel-head"><div><span class="kicker">Supplier strength</span><h3>Top capacity</h3></div></div><div class="rank-list">${a.top_suppliers.length?a.top_suppliers.map((x,i)=>`<div class="rank-item"><span class="rank-num">${i+1}</span><strong>${esc(x.name)}</strong><span>${Number(x.capacity).toLocaleString()} trays/wk</span></div>`).join(''):empty()}</div></article></div>`}
 const plural=t=>t==='membership'?'memberships':t==='entrepreneur'?'entrepreneurs':t+'s',labelOf=t=>({farmer:'Farmer',buyer:'Buyer',order:'Order',membership:'Membership',entrepreneur:'AgriStart'})[t]||t,nameOf=r=>r.farm_name||r.business_name||r.payer_name||r.full_name||'Record';
 const actionButtons=(resource,record)=>`<div class="row-actions"><button class="link-btn" onclick="openRecord('${resource}',${record.id})">Review</button><button class="approve-btn" onclick="quickDecision('${resource}',${record.id},'Approved')">Approve</button><button class="reject-btn" onclick="quickDecision('${resource}',${record.id},'Rejected')">Reject</button></div>`;
 window.quickDecision=async(resource,id,status)=>{const verb=status==='Approved'?'approve':'reject';if(!confirm(`Are you sure you want to ${verb} this ${resource.slice(0,-1)} record?`))return;try{await api(`/admin/${resource}/${id}`,{method:'PATCH',body:JSON.stringify({status})});toast(`Record ${status.toLowerCase()}`);await loadResource(resource)}catch(err){toast(err.message,false)}};
-
-/* FARMLINK LIVESTOCK ADMIN V1
-   Reads livestock metadata written by the public forms into notes, while
-   remaining compatible with the existing egg-oriented database schema. */
-const LIVESTOCK_PRODUCTS=new Set(['Goats','Sheep','Cattle']);
-function noteSection(notes,marker){
-  const raw=String(notes||'');
-  const pos=raw.indexOf(marker);
-  if(pos<0)return {};
-  const section=raw.slice(pos+marker.length).trim();
-  const result={};
-  section.split(/\r?\n/).forEach(line=>{
-    const cut=line.indexOf(':');
-    if(cut<1)return;
-    const key=line.slice(0,cut).trim().toLowerCase();
-    const value=line.slice(cut+1).trim();
-    if(value)result[key]=value;
-  });
-  return result;
-}
-function farmerProduct(r){
-  const d=noteSection(r.notes,'--- FarmLink Livestock Details ---');
-  return d.product||'Eggs';
-}
-function farmerLivestock(r){return noteSection(r.notes,'--- FarmLink Livestock Details ---')}
-function buyerProduct(r){
-  const d=noteSection(r.notes,'--- FarmLink Livestock Procurement ---');
-  return d['product required']||'Eggs';
-}
-function buyerLivestock(r){return noteSection(r.notes,'--- FarmLink Livestock Procurement ---')}
-function orderProduct(r){
-  const d=noteSection(r.notes,'--- FarmLink Livestock Order ---');
-  return d['product required']||'Eggs';
-}
-function orderLivestock(r){return noteSection(r.notes,'--- FarmLink Livestock Order ---')}
-function productBadge(product){
-  const p=product||'Eggs';
-  const cls=String(p).toLowerCase().replace(/[^a-z0-9]+/g,'-');
-  return `<span class="product-chip product-${cls}">${esc(p)}</span>`;
-}
-function livestockSummary(r,type='farmer'){
-  const d=type==='farmer'?farmerLivestock(r):type==='buyer'?buyerLivestock(r):orderLivestock(r);
-  const product=type==='farmer'?farmerProduct(r):type==='buyer'?buyerProduct(r):orderProduct(r);
-  if(!LIVESTOCK_PRODUCTS.has(product))return '';
-  const bits=[];
-  if(d['breed']||d['preferred breed'])bits.push(d['breed']||d['preferred breed']);
-  if(d['number available'])bits.push(`${d['number available']} available`);
-  if(d['preferred sex']||d['sex'])bits.push(d['preferred sex']||d['sex']);
-  if(d['average live weight']||d['target live weight'])bits.push(d['average live weight']||d['target live weight']);
-  return `<div class="livestock-inline">${bits.map(esc).join(' · ')||'Livestock details recorded'}</div>`;
-}
-function livestockDetailCards(r,resource){
-  let d={},product='Eggs';
-  if(resource==='farmers'){d=farmerLivestock(r);product=farmerProduct(r)}
-  else if(resource==='buyers'){d=buyerLivestock(r);product=buyerProduct(r)}
-  else if(resource==='orders'){d=orderLivestock(r);product=orderProduct(r)}
-  if(!LIVESTOCK_PRODUCTS.has(product))return '';
-  const labels={
-    'breed':'Breed','preferred breed':'Preferred breed','number available':'Number available',
-    'age / range':'Age / range','preferred age / range':'Preferred age / range','sex':'Sex','preferred sex':'Preferred sex',
-    'average live weight':'Average live weight','target live weight':'Target live weight',
-    'price per animal':'Price per animal','vaccination status':'Vaccination status','health records':'Health records',
-    'supply frequency':'Supply frequency','minimum order quantity':'Minimum order quantity'
-  };
-  const cards=Object.entries(d).filter(([k,v])=>k!=='product'&&k!=='product required'&&v).map(([k,v])=>`<div class="detail"><span>${esc(labels[k]||k)}</span><strong>${esc(v)}</strong></div>`).join('');
-  return `<div class="livestock-record-head"><div><span class="kicker">Livestock profile</span><h3>${esc(product)}</h3></div>${productBadge(product)}</div><div class="detail-grid livestock-detail-grid">${cards}</div>`;
-}
-function countLivestock(items,product){return (items||[]).filter(r=>farmerProduct(r)===product).length}
-function sumLivestockAvailable(items,product){return (items||[]).filter(r=>farmerProduct(r)===product).reduce((sum,r)=>{const d=farmerLivestock(r);return sum+(Number.parseInt(d['number available'],10)||0)},0)}
-
-const configs={
-farmers:{title:'Farmer & livestock supplier applications',desc:'Verify egg and livestock suppliers, production or animal availability, location, health information and delivery capability.',cols:['Supplier','Product','Province','Location','Supply / availability','Status','Assigned',''],row:r=>{const p=farmerProduct(r),d=farmerLivestock(r);const availability=LIVESTOCK_PRODUCTS.has(p)?`${esc(d['number available']||'—')} animals${d['breed']?`<div class="ref">${esc(d['breed'])}</div>`:''}`:`${Number(r.weekly_capacity||0).toLocaleString()} trays`;return[`${esc(r.farm_name)}<div class="ref">${esc(r.reference)}</div>${livestockSummary(r,'farmer')}`,productBadge(p),provinceBadge(r),esc(r.location),availability,badge(r.status),esc(r.assigned_to?.full_name||'Unassigned'),actionButtons('farmers',r)]}},
-buyers:{title:'Business buyer registrations',desc:'Review commercial demand for eggs, goats, sheep and cattle.',cols:['Buyer','Product','Province','Category','Demand','Status','Assigned',''],row:r=>{const p=buyerProduct(r);return[`${esc(r.business_name)}<div class="ref">${esc(r.reference)}</div>${livestockSummary(r,'buyer')}`,productBadge(p),provinceBadge(r),esc(r.category),esc(r.weekly_volume),badge(r.status),esc(r.assigned_to?.full_name||'Unassigned'),actionButtons('buyers',r)]}},
-orders:{title:'Bulk agricultural orders',desc:'Confirm egg and livestock supply, quotations, specifications and fulfilment ownership.',cols:['Customer','Product','Quantity','Specifications','Required date','Status','Quoted',''],row:r=>{const p=orderProduct(r),d=orderLivestock(r);const spec=LIVESTOCK_PRODUCTS.has(p)?[d['preferred breed'],d['preferred sex'],d['target live weight']].filter(Boolean).map(esc).join(' · ')||'Livestock specification':`${esc(r.egg_size||'')} ${esc(r.packaging||'')}`;return[`${esc(r.business_name)}<div class="ref">${esc(r.reference)}</div>`,productBadge(p),esc(r.quantity),spec,fmtDate(r.required_date),badge(r.status),r.quoted_amount?fmtMoney(r.quoted_amount):'Not quoted',`<button class="link-btn" onclick="openRecord('orders',${r.id})">Manage</button>`]}},
-memberships:{title:'Membership and marketing',desc:'Review premium subscriptions and campaign applications.',cols:['Applicant','Service','Location','Status','Assigned',''],row:r=>[`${esc(r.business_name)}<div class="ref">${esc(r.reference)}</div>`,esc(r.selected_service),esc(r.location),badge(r.status),esc(r.assigned_to?.full_name||'Unassigned'),`<button class="link-btn" onclick="openRecord('memberships',${r.id})">Review</button>`]},
-entrepreneurs:{title:'Agricultural entrepreneurship applications',desc:'Develop students, graduates and aspiring farmers into market-ready agricultural businesses.',cols:['Applicant','Qualification','Interest','Province','Status',''],row:r=>[`${esc(r.full_name)}<div class="ref">${esc(r.reference)}</div>`,esc(r.qualification),esc(r.agricultural_interest),esc(r.province),badge(r.status),`<div class="row-actions"><button onclick="openRecord('entrepreneurs',${r.id})">Review</button></div>`]}};
-async function loadResource(resource){const cfg=configs[resource],v=$('#'+resource);v.innerHTML=`<div class="page-head"><div><span class="kicker">Central records</span><h2>${cfg.title}</h2><p class="muted">${cfg.desc}</p></div><div class="toolbar"><input id="${resource}Search" placeholder="Search records">${['farmers','buyers','orders'].includes(resource)?`<select id="${resource}Product"><option value="all">All products</option><option>Eggs</option><option>Goats</option><option>Sheep</option><option>Cattle</option></select>`:''}<select id="${resource}Province">${provinceOptions()}</select><select id="${resource}Status"><option value="all">All statuses</option>${['Pending','New','Contacted','Under Review','Mentorship Assigned','Funding Support','Business Established','Marketplace Ready','Approved','In progress','Completed','Rejected','Closed','Cancelled'].map(x=>`<option>${x}</option>`).join('')}</select></div></div><div class="panel table-wrap"><div id="${resource}Table"></div></div>`;const render=async()=>{const d=await api(`/admin/${resource}?q=${encodeURIComponent($('#'+resource+'Search').value)}&status=${encodeURIComponent($('#'+resource+'Status').value)}`);const province=$('#'+resource+'Province')?.value||'all';const product=$('#'+resource+'Product')?.value||'all';const productOf=r=>resource==='farmers'?farmerProduct(r):resource==='buyers'?buyerProduct(r):resource==='orders'?orderProduct(r):'all';const items=(d.items||[]).filter(r=>(province==='all'||provinceOf(r)===province)&&(product==='all'||productOf(r)===product));$('#'+resource+'Table').innerHTML=items.length?table(cfg.cols,items.map(cfg.row)):empty('No matching records for this province and status.')};$('#'+resource+'Search').oninput=debounce(render,250);if($('#'+resource+'Product'))$('#'+resource+'Product').onchange=render;$('#'+resource+'Province').onchange=render;$('#'+resource+'Status').onchange=render;await render()}
+const configs={farmers:{title:'Farmer applications',desc:'Verify supplier identity, capacity, location and delivery capability.',cols:['Supplier','Province','Location','Weekly capacity','Status','Assigned',''],row:r=>[`${esc(r.farm_name)}<div class="ref">${esc(r.reference)}</div>`,provinceBadge(r),esc(r.location),`${Number(r.weekly_capacity).toLocaleString()} trays`,badge(r.status),esc(r.assigned_to?.full_name||'Unassigned'),actionButtons('farmers',r)]},buyers:{title:'Business buyer registrations',desc:'Review commercial requirements and customer demand.',cols:['Buyer','Province','Category','Weekly demand','Status','Assigned',''],row:r=>[`${esc(r.business_name)}<div class="ref">${esc(r.reference)}</div>`,provinceBadge(r),esc(r.category),esc(r.weekly_volume),badge(r.status),esc(r.assigned_to?.full_name||'Unassigned'),actionButtons('buyers',r)]},orders:{title:'Bulk order requests',desc:'Confirm supply, quotations and fulfilment ownership.',cols:['Customer','Quantity','Required date','Status','Quoted',''],row:r=>[`${esc(r.business_name)}<div class="ref">${esc(r.reference)}</div>`,esc(r.quantity),fmtDate(r.required_date),badge(r.status),r.quoted_amount?fmtMoney(r.quoted_amount):'Not quoted',`<button class="link-btn" onclick="openRecord('orders',${r.id})">Manage</button>`]},memberships:{title:'Membership and marketing',desc:'Review premium subscriptions and campaign applications.',cols:['Applicant','Service','Location','Status','Assigned',''],row:r=>[`${esc(r.business_name)}<div class="ref">${esc(r.reference)}</div>`,esc(r.selected_service),esc(r.location),badge(r.status),esc(r.assigned_to?.full_name||'Unassigned'),`<button class="link-btn" onclick="openRecord('memberships',${r.id})">Review</button>`]},
+ entrepreneurs:{title:'Agricultural entrepreneurship applications',desc:'Develop students, graduates and aspiring farmers into market-ready agricultural businesses.',cols:['Applicant','Qualification','Interest','Province','Status',''],row:r=>[`${r.full_name}<div class="ref">${r.reference}</div>`,r.qualification,r.agricultural_interest,r.province,badge(r.status),`<div class="row-actions"><button onclick="openRecord('entrepreneurs',${r.id})">Review</button></div>`]}};
+async function loadResource(resource){const cfg=configs[resource],v=$('#'+resource);v.innerHTML=`<div class="page-head"><div><span class="kicker">Central records</span><h2>${cfg.title}</h2><p class="muted">${cfg.desc}</p></div><div class="toolbar"><input id="${resource}Search" placeholder="Search records"><select id="${resource}Province">${provinceOptions()}</select><select id="${resource}Status"><option value="all">All statuses</option>${['Pending','New','Contacted','Under Review','Mentorship Assigned','Funding Support','Business Established','Marketplace Ready','Approved','In progress','Completed','Rejected','Closed','Cancelled'].map(x=>`<option>${x}</option>`).join('')}</select></div></div><div class="panel table-wrap"><div id="${resource}Table"></div></div>`;const render=async()=>{const d=await api(`/admin/${resource}?q=${encodeURIComponent($('#'+resource+'Search').value)}&status=${encodeURIComponent($('#'+resource+'Status').value)}`);const province=$('#'+resource+'Province')?.value||'all';const items=(d.items||[]).filter(r=>province==='all'||provinceOf(r)===province);$('#'+resource+'Table').innerHTML=items.length?table(cfg.cols,items.map(cfg.row)):empty('No matching records for this province and status.')};$('#'+resource+'Search').oninput=debounce(render,250);$('#'+resource+'Province').onchange=render;$('#'+resource+'Status').onchange=render;await render()}
 const table=(cols,rows)=>`<table class="table"><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
 function debounce(fn,ms){let t;return()=>{clearTimeout(t);t=setTimeout(fn,ms)}}
-window.openRecord=async(resource,id)=>{const [r,users]=await Promise.all([api(`/admin/${resource}/${id}`),api('/admin/users')]);const excluded=['id','assigned_to_id','internal_notes','created_at','updated_at','assigned_to'];const fields=Object.entries(r).filter(([k])=>!excluded.includes(k));if(!fields.some(([k])=>k==='province'))fields.splice(2,0,['province',provinceOf(r)]);$('#drawerBody').innerHTML=`<span class="kicker">${esc(resource.slice(0,-1))} record</span><h2>${esc(nameOf(r))}</h2><p class="ref">${esc(r.reference)}</p><div class="detail-grid">${fields.map(([k,v])=>`<div class="detail"><span>${esc(k.replaceAll('_',' '))}</span><strong>${esc(v)}</strong></div>`).join('')}</div>${livestockDetailCards(r,resource)}<form id="recordForm"><div class="form-grid"><label>Status<select id="recordStatus">${['Pending','New','Contacted','Under Review','Mentorship Assigned','Funding Support','Business Established','Marketplace Ready','Approved','In progress','Completed','Rejected','Closed','Cancelled'].map(s=>`<option ${r.status===s?'selected':''}>${s}</option>`).join('')}</select></label><label>Assigned administrator<select id="recordOwner"><option value="">Unassigned</option>${users.filter(u=>u.is_active).map(u=>`<option value="${u.id}" ${r.assigned_to_id===u.id?'selected':''}>${esc(u.full_name)}</option>`).join('')}</select></label>${resource==='orders'?`<label>Quoted amount (R)<input id="quotedAmount" type="number" step="0.01" min="0" value="${r.quoted_amount||''}"></label>`:''}<label class="full">Internal notes<textarea id="internalNotes" rows="5">${esc(r.internal_notes||'')}</textarea></label></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="closeDrawer()">Cancel</button><button class="btn btn-primary">Save changes</button></div></form>`;openDrawer();$('#recordForm').onsubmit=async e=>{e.preventDefault();const payload={status:$('#recordStatus').value,assigned_to_id:$('#recordOwner').value?Number($('#recordOwner').value):null,internal_notes:$('#internalNotes').value};if(resource==='orders')payload.quoted_amount=$('#quotedAmount').value?Number($('#quotedAmount').value):null;await api(`/admin/${resource}/${id}`,{method:'PATCH',body:JSON.stringify(payload)});toast('Record updated');closeDrawer();loadResource(resource)}};
+window.openRecord=async(resource,id)=>{const [r,users]=await Promise.all([api(`/admin/${resource}/${id}`),api('/admin/users')]);const excluded=['id','assigned_to_id','internal_notes','created_at','updated_at','assigned_to'];const fields=Object.entries(r).filter(([k])=>!excluded.includes(k));if(!fields.some(([k])=>k==='province'))fields.splice(2,0,['province',provinceOf(r)]);$('#drawerBody').innerHTML=`<span class="kicker">${esc(resource.slice(0,-1))} record</span><h2>${esc(nameOf(r))}</h2><p class="ref">${esc(r.reference)}</p><div class="detail-grid">${fields.map(([k,v])=>`<div class="detail"><span>${esc(k.replaceAll('_',' '))}</span><strong>${esc(v)}</strong></div>`).join('')}</div><form id="recordForm"><div class="form-grid"><label>Status<select id="recordStatus">${['Pending','New','Contacted','Under Review','Mentorship Assigned','Funding Support','Business Established','Marketplace Ready','Approved','In progress','Completed','Rejected','Closed','Cancelled'].map(s=>`<option ${r.status===s?'selected':''}>${s}</option>`).join('')}</select></label><label>Assigned administrator<select id="recordOwner"><option value="">Unassigned</option>${users.filter(u=>u.is_active).map(u=>`<option value="${u.id}" ${r.assigned_to_id===u.id?'selected':''}>${esc(u.full_name)}</option>`).join('')}</select></label>${resource==='orders'?`<label>Quoted amount (R)<input id="quotedAmount" type="number" step="0.01" min="0" value="${r.quoted_amount||''}"></label>`:''}<label class="full">Internal notes<textarea id="internalNotes" rows="5">${esc(r.internal_notes||'')}</textarea></label></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="closeDrawer()">Cancel</button><button class="btn btn-primary">Save changes</button></div></form>`;openDrawer();$('#recordForm').onsubmit=async e=>{e.preventDefault();const payload={status:$('#recordStatus').value,assigned_to_id:$('#recordOwner').value?Number($('#recordOwner').value):null,internal_notes:$('#internalNotes').value};if(resource==='orders')payload.quoted_amount=$('#quotedAmount').value?Number($('#quotedAmount').value):null;await api(`/admin/${resource}/${id}`,{method:'PATCH',body:JSON.stringify(payload)});toast('Record updated');closeDrawer();loadResource(resource)}};
 async function loadInventory(){const rows=await api('/admin/inventory');$('#inventory').innerHTML=pageHead('Supply control','Inventory management','Track egg availability by farmer, size, packaging and expiry.',`<button class="btn btn-primary" onclick="openInventoryModal()">Add inventory lot</button>`)+`<div class="panel table-wrap">${rows.length?table(['Reference','Farmer','Egg size','Packaging','Available','Price','Status'],rows.map(r=>[esc(r.reference),esc(r.farmer_name),esc(r.egg_size),esc(r.packaging),`${r.trays_available} trays`,r.unit_price?fmtMoney(r.unit_price):'\u2014',badge(r.status)])):empty()}</div>`}
 window.openInventoryModal=async()=>{const farmers=(await api('/admin/farmers?status=Approved')).items;openForm('Add inventory lot',`<label>Farmer<select id="iFarmer" required>${farmers.map(x=>`<option value="${x.id}">${esc(x.farm_name)}</option>`).join('')}</select></label><label>Egg size<input id="iSize" required></label><label>Packaging<input id="iPack" required></label><label>Trays available<input id="iTrays" type="number" min="0" required></label><label>Unit price (R)<input id="iPrice" type="number" min="0" step=".01"></label><label>Status<select id="iStatus"><option>Available</option><option>Reserved</option><option>Sold</option><option>Expired</option></select></label>`,async()=>{await api('/admin/inventory',{method:'POST',body:JSON.stringify({farmer_id:+$('#iFarmer').value,egg_size:$('#iSize').value,packaging:$('#iPack').value,trays_available:+$('#iTrays').value,unit_price:$('#iPrice').value?+$('#iPrice').value:null,status:$('#iStatus').value})});loadInventory()})}
 
@@ -707,11 +632,83 @@ showView=async function(name){
 };
 
 let revenueChart=null;
+
+/* FARMLINK_LIVESTOCK_DASHBOARD_V2 */
+function farmLinkProductCategory(record){
+  const direct=String(record?.product_category||record?.product||record?.agricultural_interest||'').trim();
+  if(direct && /^(eggs?|goats?|sheep|cattle)$/i.test(direct)){
+    const x=direct.toLowerCase();
+    if(x.startsWith('egg'))return 'Eggs';
+    if(x.startsWith('goat'))return 'Goats';
+    if(x==='sheep')return 'Sheep';
+    if(x==='cattle')return 'Cattle';
+  }
+  const blob=[
+    record?.notes,record?.internal_notes,record?.egg_sizes,record?.packaging,
+    record?.producer_type,record?.quantity,record?.customer_type
+  ].filter(Boolean).join('\n');
+  const m=blob.match(/(?:Product(?: required)?|Product category)\s*:\s*(Eggs?|Goats?|Sheep|Cattle)/i);
+  if(m){
+    const x=m[1].toLowerCase();
+    if(x.startsWith('egg'))return 'Eggs';
+    if(x.startsWith('goat'))return 'Goats';
+    if(x==='sheep')return 'Sheep';
+    if(x==='cattle')return 'Cattle';
+  }
+  if(/\bgoats?\b/i.test(blob))return 'Goats';
+  if(/\bsheep\b/i.test(blob))return 'Sheep';
+  if(/\bcattle\b|\bnguni\b|\bheifer\b|\bbull\b|\bcow\b/i.test(blob))return 'Cattle';
+  return 'Eggs';
+}
+function farmLinkLivestockNumber(record){
+  const blob=[record?.notes,record?.internal_notes,record?.quantity].filter(Boolean).join('\n');
+  const m=blob.match(/Number available\s*:\s*([0-9,]+)/i) || blob.match(/Quantity\s*:\s*([0-9,]+)/i);
+  if(m)return Number(String(m[1]).replaceAll(',',''))||0;
+  if(farmLinkProductCategory(record)!=='Eggs'){
+    const q=String(record?.quantity||'').match(/[0-9,]+/);
+    if(q)return Number(q[0].replaceAll(',',''))||0;
+  }
+  return 0;
+}
+function farmLinkBreed(record){
+  const blob=[record?.notes,record?.internal_notes].filter(Boolean).join('\n');
+  const m=blob.match(/(?:Preferred )?Breed\s*:\s*([^\n\r]+)/i);
+  return m?m[1].trim():'';
+}
+function farmLinkLivestockStats(farmers,orders){
+  const cats=['Goats','Sheep','Cattle'];
+  const result={
+    supplierCounts:{Goats:0,Sheep:0,Cattle:0},
+    available:{Goats:0,Sheep:0,Cattle:0},
+    orderCounts:{Goats:0,Sheep:0,Cattle:0}
+  };
+  (farmers||[]).forEach(r=>{
+    const cat=farmLinkProductCategory(r);
+    if(cats.includes(cat)){
+      result.supplierCounts[cat]+=1;
+      result.available[cat]+=farmLinkLivestockNumber(r);
+    }
+  });
+  (orders||[]).forEach(r=>{
+    const cat=farmLinkProductCategory(r);
+    if(cats.includes(cat))result.orderCounts[cat]+=1;
+  });
+  return result;
+}
+
 loadDashboard=async function(){
   const dashboard=$('#dashboard');
   dashboard.innerHTML=`<div class="skeleton-page"><div class="skeleton skeleton-banner"></div><div class="skeleton-cards">${'<div class="skeleton skeleton-card"></div>'.repeat(5)}</div><div class="skeleton skeleton-panel"></div></div>`;
-  const [d,a]=await Promise.all([api('/admin/dashboard'),api('/admin/analytics')]);
+  const [d,a,farmerData,orderData]=await Promise.all([
+    api('/admin/dashboard'),
+    api('/admin/analytics'),
+    api('/admin/farmers?status=all').catch(()=>({items:[]})),
+    api('/admin/orders?status=all').catch(()=>({items:[]}))
+  ]);
   const c=d.counts||{};
+  const allFarmers=farmerData.items||[];
+  const allOrders=orderData.items||[];
+  const livestock=farmLinkLivestockStats(allFarmers,allOrders);
   const pendingFarmers=c.farmers?.pending||0,pendingBuyers=c.buyers?.pending||0,openOrders=c.open_orders||0;
   dashboard.innerHTML=`
   <div class="command-banner"><div><span class="kicker light">Operations command</span><h2>National distribution oversight from one accountable system.</h2><p>Monitor registrations, revenue, supply, fulfilment, quality and team activity in real time.</p></div><div class="command-date"><strong>${new Intl.DateTimeFormat('en-ZA',{dateStyle:'full'}).format(new Date())}</strong><span>Gauteng headquarters \u00B7 Nationwide coordination</span></div></div>
@@ -721,9 +718,15 @@ loadDashboard=async function(){
   <div class="metrics">
     ${metricCard('Today revenue',fmtMoney(a.today_revenue),'Verified payments','R','emerald')}
     ${metricCard('Month revenue',fmtMoney(a.month_revenue),'Current calendar month','\u2197','forest')}
-    ${metricCard('Eggs traded',Number(a.total_trays||0).toLocaleString('en-ZA')+' trays','Recorded order volume','\u25C9','gold')}
+    ${metricCard('Eggs traded',Number(a.total_trays||0).toLocaleString('en-ZA')+' trays','Recorded egg order volume','\u25C9','gold')}
     ${metricCard('Active farmers',a.active_farmers||0,'Approved suppliers','\u2659','blue')}
     ${metricCard('Delivery performance',(a.delivery_performance||0)+'%','Completed dispatches','\u21C4','teal')}
+  </div>
+  <div class="metrics livestock-metrics">
+    ${metricCard('Goats available',livestock.available.Goats.toLocaleString('en-ZA')+' animals',livestock.supplierCounts.Goats+' goat supplier(s) · '+livestock.orderCounts.Goats+' order(s)','G','forest')}
+    ${metricCard('Sheep available',livestock.available.Sheep.toLocaleString('en-ZA')+' animals',livestock.supplierCounts.Sheep+' sheep supplier(s) · '+livestock.orderCounts.Sheep+' order(s)','S','gold')}
+    ${metricCard('Cattle available',livestock.available.Cattle.toLocaleString('en-ZA')+' animals',livestock.supplierCounts.Cattle+' cattle supplier(s) · '+livestock.orderCounts.Cattle+' order(s)','C','blue')}
+    ${metricCard('Livestock suppliers',(livestock.supplierCounts.Goats+livestock.supplierCounts.Sheep+livestock.supplierCounts.Cattle).toLocaleString('en-ZA'),'Goats, sheep and cattle suppliers','L','teal')}
   </div>
   <div class="metrics secondary-metrics">
     ${metricCard('Pending farmers',pendingFarmers,'Awaiting approval','!')}
@@ -735,13 +738,10 @@ loadDashboard=async function(){
   <div class="grid-2"><article class="panel"><div class="panel-head"><div><span class="kicker">Commercial performance</span><h3>Revenue trend</h3></div><button class="link-btn" onclick="exportChart()">Export PNG</button></div><div class="chart-wrap"><canvas id="revenueChart"></canvas></div></article><article class="panel"><div class="panel-head"><div><span class="kicker">Buyer activity</span><h3>Top customers</h3></div></div><div class="rank-list">${a.top_buyers?.length?a.top_buyers.map((x,i)=>`<div class="rank-item"><span class="rank-num">${i+1}</span><strong>${esc(x.name)}</strong><span>${x.orders} orders</span></div>`).join(''):smartEmpty('No customers yet','Approved buyers and completed orders will appear here.','buyers','Review buyers')}</div></article></div>
   <div class="grid-2" style="margin-top:18px"><article class="panel"><div class="panel-head"><div><span class="kicker">Order pipeline</span><h3>Latest submissions</h3></div></div>${d.latest?.length?d.latest.map(x=>`<div class="list-item"><div><strong>${esc(nameOf(x))}</strong><div class="ref">${esc(x.reference)}</div></div><span>${esc(labelOf(x.type))}</span>${badge(x.status)}<button class="link-btn" onclick="openRecord('${plural(x.type)}',${x.id})">Review</button></div>`).join(''):smartEmpty('No submissions yet','New farmer, buyer and order registrations will appear in this queue.','farmers','Open registrations')}</article><article class="panel"><div class="panel-head"><div><span class="kicker">Supplier strength</span><h3>Top capacity</h3></div></div><div class="rank-list">${a.top_suppliers?.length?a.top_suppliers.map((x,i)=>`<div class="rank-item"><span class="rank-num">${i+1}</span><strong>${esc(x.name)}</strong><span>${Number(x.capacity).toLocaleString()} trays/wk</span></div>`).join(''):smartEmpty('No supplier rankings yet','Approve farmers to begin tracking production capacity.','farmers','Review farmers')}</div></article></div>`;
   try{
-    const [allFarmers,allBuyers]=await Promise.all([
-      api('/admin/farmers?status=all').catch(()=>({items:[]})),
-      api('/admin/buyers?status=all').catch(()=>({items:[]}))
-    ]);
+    const allBuyers=await api('/admin/buyers?status=all').catch(()=>({items:[]}));
     const provinceStats=SA_PROVINCES.map(province=>({
       province,
-      farmers:(allFarmers.items||[]).filter(x=>provinceOf(x)===province).length,
+      farmers:allFarmers.filter(x=>provinceOf(x)===province).length,
       buyers:(allBuyers.items||[]).filter(x=>provinceOf(x)===province).length
     }));
     $('#dashboard').insertAdjacentHTML('beforeend',provinceCoverage(provinceStats));
